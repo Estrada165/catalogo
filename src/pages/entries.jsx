@@ -9,8 +9,14 @@ import AdminLayout from './admin/AdminLayout'
 
 export { default as PanelHome } from './panel/PanelHome'
 export { default as Products } from './panel/Products'
-export { default as ComingSoon } from './panel/ComingSoon'
 export { default as AdminTenants } from './admin/AdminTenants'
+export { default as AdminRubros } from './admin/AdminRubros'
+export { default as Settings } from './panel/Settings'
+export { default as Appearance } from './panel/Appearance'
+export { default as Orders } from './panel/Orders'
+export { default as Bot } from './panel/Bot'
+export { default as QrPage } from './panel/QrPage'
+export { default as Analytics } from './panel/Analytics'
 
 export const LoginPage = () => <GuestOnly><Login /></GuestOnly>
 export const RegisterPage = () => <GuestOnly><Register /></GuestOnly>

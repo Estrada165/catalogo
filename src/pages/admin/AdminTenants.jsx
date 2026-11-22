@@ -116,7 +116,7 @@ export default function AdminTenants() {
                       )}
                     </td>
                     <td>{t.rubro_key || '—'}</td>
-                    <td><span className={`pill pill--${t.status === 'activo' ? 'ok' : t.status === 'pendiente' ? 'warn' : 'error'}`}>{t.status}</span></td>
+                    <td><span className={`pill pill--${t.status === 'activo' ? 'ok' : t.status === 'pendiente' ? 'warn' : 'error'}`} style={{ textTransform: 'capitalize' }}>{t.status}</span></td>
                     <td>
                       {formatDate(t.expires_at)}
                       {left !== null && <small className={left <= 5 ? 'text-warn' : 'muted'}>{left > 0 ? `${left} días` : 'vencido'}</small>}

@@ -84,3 +84,22 @@ export async function removeImages(images = []) {
   const paths = images.flatMap((i) => [i.path_full, i.path_thumb]).filter(Boolean)
   if (paths.length) await supabase.storage.from(BUCKET).remove(paths)
 }
+
+// Imagen suelta (logo, QR de pago, avatar del bot). Mantiene transparencia en PNG.
+export async function uploadAsset(tenantId, file, folder, maxSize = 512) {
+  if (!file.type.startsWith('image/')) throw new Error('El archivo no es una imagen')
+  if (file.size > MAX_INPUT) throw new Error('La imagen supera los 15 MB')
+  const source = await loadBitmap(file)
+  const out = await compressImage(source, maxSize, 0.9)
+  if (source.close) source.close()
+  const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+  const path = `${tenantId}/${folder}/${id}.${out.ext}`
+  const { error } = await supabase.storage.from(BUCKET).upload(path, out.blob, { contentType: out.blob.type, cacheControl: '31536000' })
+  if (error) throw new Error(error.message)
+  return { url: supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl, path }
+}
+
+export async function removePaths(paths = []) {
+  const list = paths.filter(Boolean)
+  if (list.length) await supabase.storage.from(BUCKET).remove(list)
+}

@@ -10,6 +10,7 @@ Plataforma de catálogos digitales para negocios de cualquier rubro (ferretería
    - `supabase/001_schema.sql`: tablas, RLS, funciones y storage
    - `supabase/002_seed_rubros.sql`: plantillas de rubro iniciales
    - `supabase/004_slugs_reservados.sql`: palabras reservadas y verificación de enlaces
+   - `supabase/005_realtime_pedidos.sql`: los pedidos nuevos aparecen solos en el panel
    - `supabase/003_cron_opcional.sql`: opcional, requiere activar la extensión `pg_cron`
 
 2. **Variables de entorno.** Copiar `.env.example` como `.env` y completar con los datos de *Project Settings → API*.
@@ -41,11 +42,11 @@ Plataforma de catálogos digitales para negocios de cualquier rubro (ferretería
 
 ## Fases
 
-- [x] **0.** Modelo de datos, RLS, auth, alta de negocio por rubro, superadmin básico
-- [x] **1.** Catálogo público con el sistema visual del catálogo de streaming (teclas, paleta por acento, avión de papel, tema con círculo, hojas, Lu que corre el catálogo)
-- [~] **2.** Panel del dueño: productos, variantes y categorías listos; falta configuración del negocio, apariencia, secciones y módulos
-- [~] **3.** Checkout → pedido con código → WhatsApp listo; falta el panel de pedidos
-- [ ] **4.** QR personalizable + analítica
-- [~] **5.** Bot local (Lu) listo en el catálogo; falta su sección en el panel (nombre, saludo, preguntas sin respuesta)
-- [ ] **6.** Delivery por zonas, horario, venta por peso, promociones
+- [x] **0.** Modelo de datos, RLS, auth, alta de negocio por rubro, superadmin
+- [x] **1.** Catálogo público con el sistema visual del catálogo de streaming
+- [x] **2.** Panel: productos, categorías, configuración (negocio, horario, entrega, pagos, pedido, enlace), apariencia (color, estilo, tipografías, secciones, módulos) con vista previa
+- [x] **3.** Checkout → pedido con código → WhatsApp + panel de pedidos en tiempo real
+- [x] **4.** QR personalizable (sticker, tarjeta A6, historia) + analítica
+- [x] **5.** Lu local + su sección en el panel (preguntas frecuentes, bandeja de preguntas sin respuesta, perfil)
+- [x] **6.** Superadmin: editor de plantillas de rubro
 - [ ] **7.** Modo cotización + proforma

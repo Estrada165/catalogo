@@ -1,5 +1,5 @@
 import '../../styles/shell.js'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase, APP_NAME } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -23,15 +23,26 @@ export default function PanelLayout() {
   const { tenant, signOut } = useAuth()
   const [config, setConfig] = useState(null)
 
-  useEffect(() => {
+  const reloadConfig = useCallback(async () => {
     if (!tenant) return
-    supabase
-      .from('tenant_config')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .maybeSingle()
-      .then(({ data }) => setConfig(data))
+    const { data } = await supabase.from('tenant_config').select('*').eq('tenant_id', tenant.id).maybeSingle()
+    setConfig(data)
   }, [tenant])
+
+  useEffect(() => {
+    reloadConfig()
+  }, [reloadConfig])
+
+  // Guarda una o varias columnas de tenant_config (business, theme, sections, modules, checkout, bot)
+  const saveConfig = useCallback(
+    async (patch) => {
+      const { data, error } = await supabase.from('tenant_config').update(patch).eq('tenant_id', tenant.id).select().single()
+      if (error) throw error
+      setConfig(data)
+      return data
+    },
+    [tenant]
+  )
 
   const modules = config?.modules || {}
   const items = NAV.filter((i) => !i.module || modules[i.module] !== false)
@@ -78,7 +89,7 @@ export default function PanelLayout() {
       </header>
 
       <main className="shell__main">
-        <Outlet context={{ config, setConfig }} />
+        <Outlet context={{ config, setConfig, saveConfig, reloadConfig }} />
       </main>
     </div>
   )

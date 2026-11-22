@@ -11,8 +11,14 @@ const PanelPage = entry('PanelPage')
 const AdminPage = entry('AdminPage')
 const PanelHome = entry('PanelHome')
 const Products = entry('Products')
-const ComingSoon = entry('ComingSoon')
 const AdminTenants = entry('AdminTenants')
+const AdminRubros = entry('AdminRubros')
+const Settings = entry('Settings')
+const Appearance = entry('Appearance')
+const Orders = entry('Orders')
+const Bot = entry('Bot')
+const QrPage = entry('QrPage')
+const Analytics = entry('Analytics')
 const CatalogPage = lazy(() => import('./catalog/CatalogPage'))
 
 function Blank() {
@@ -31,17 +37,17 @@ export default function App() {
         <Route path="/panel" element={<PanelPage />}>
           <Route index element={<PanelHome />} />
           <Route path="productos" element={<Products />} />
-          <Route path="pedidos" element={<ComingSoon title="Pedidos" phase="fase 3" />} />
-          <Route path="apariencia" element={<ComingSoon title="Apariencia" phase="fase 2" />} />
-          <Route path="bot" element={<ComingSoon title="Bot" phase="fase 5" />} />
-          <Route path="qr" element={<ComingSoon title="Mi QR" phase="fase 4" />} />
-          <Route path="analitica" element={<ComingSoon title="Analítica" phase="fase 4" />} />
-          <Route path="configuracion" element={<ComingSoon title="Configuración" phase="fase 2" />} />
+          <Route path="pedidos" element={<Orders />} />
+          <Route path="apariencia" element={<Appearance />} />
+          <Route path="bot" element={<Bot />} />
+          <Route path="qr" element={<QrPage />} />
+          <Route path="analitica" element={<Analytics />} />
+          <Route path="configuracion" element={<Settings />} />
         </Route>
 
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<AdminTenants />} />
-          <Route path="rubros" element={<ComingSoon title="Plantillas de rubro" phase="fase 2" />} />
+          <Route path="rubros" element={<AdminRubros />} />
         </Route>
 
         <Route path="/q/:code" element={<QrRedirect />} />

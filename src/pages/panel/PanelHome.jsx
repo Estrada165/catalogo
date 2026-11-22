@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { catalogUrl, daysLeft, formatDate } from '../../lib/utils'
@@ -12,6 +13,7 @@ const STATUS = {
 
 export default function PanelHome() {
   const { tenant } = useAuth()
+  const { config } = useOutletContext()
   const [counts, setCounts] = useState({ products: null, pending: null, visits: null })
   const [copied, setCopied] = useState(false)
 
@@ -55,6 +57,8 @@ export default function PanelHome() {
         <div className="alert alert--error">Tu catálogo está suspendido y no es visible al público. Comunícate con el administrador.</div>
       )}
 
+      {config && counts.products !== null && <Checklist config={config} products={counts.products} />}
+
       <section className="card link-card">
         <div>
           <small className="muted">Enlace de tu catálogo</small>
@@ -85,5 +89,36 @@ export default function PanelHome() {
         </div>
       </section>
     </div>
+  )
+}
+
+function Checklist({ config, products }) {
+  const b = config.business || {}
+  const ck = config.checkout || {}
+  const steps = [
+    { done: !!b.whatsapp, label: 'Agrega tu WhatsApp para recibir pedidos', to: '/panel/configuracion', must: true },
+    { done: products > 0, label: 'Carga tus primeros productos', to: '/panel/productos', must: true },
+    { done: !!b.logo, label: 'Sube tu logo', to: '/panel/configuracion' },
+    { done: (ck.payment_methods || []).length > 0, label: 'Agrega tus métodos de pago', to: '/panel/configuracion' },
+    { done: Array.isArray(b.hours) && b.hours.length > 0, label: 'Publica tu horario de atención', to: '/panel/configuracion' },
+  ]
+  const left = steps.filter((x) => !x.done)
+  if (!left.length) return null
+  return (
+    <section className="card checklist">
+      <div className="checklist__head">
+        <h2 className="display">Deja tu catálogo listo</h2>
+        <span className="muted">{steps.length - left.length} de {steps.length}</span>
+      </div>
+      <div className="checklist__bar"><span style={{ width: `${((steps.length - left.length) / steps.length) * 100}%` }} /></div>
+      <ul>
+        {steps.map((x) => (
+          <li key={x.label} className={x.done ? 'is-done' : ''}>
+            <span className="checklist__dot">{x.done && <IconCheck width={13} height={13} />}</span>
+            {x.done ? <span>{x.label}</span> : <Link to={x.to}>{x.label}{x.must && <em> · necesario</em>}</Link>}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
