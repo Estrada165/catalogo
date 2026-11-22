@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { daysLeft, formatDate } from '../../lib/utils'
+import { formatBytes, removeInBatches } from '../../lib/images'
 import Loader from '../../components/Loader'
 import { IconExternal, IconSearch } from '../../components/icons'
 
@@ -79,6 +80,8 @@ export default function AdminTenants() {
 
       {error && <p className="alert alert--error">{error}</p>}
 
+      <OrphanCleaner />
+
       {!rows ? (
         <Loader />
       ) : visible.length === 0 ? (
@@ -143,6 +146,54 @@ export default function AdminTenants() {
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  )
+}
+
+function OrphanCleaner() {
+  const [files, setFiles] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const scan = async () => {
+    setBusy(true)
+    setMsg('')
+    const { data, error } = await supabase.rpc('list_orphan_files_all')
+    setBusy(false)
+    if (error) return setMsg(error.message)
+    setFiles(data || [])
+  }
+  const clean = async () => {
+    setBusy(true)
+    try {
+      const n = await removeInBatches(files.map((f) => f.name))
+      setMsg(`Listo: se borraron ${n} archivos.`)
+      setFiles(null)
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const bytes = (files || []).reduce((s, f) => s + Number(f.bytes || 0), 0)
+  const deleted = new Set((files || []).map((f) => f.tenant_id)).size
+  return (
+    <div className="card orphan-card">
+      <div>
+        <strong>Archivos sin usar</strong>
+        <small className="muted">
+          {files === null
+            ? 'Busca imágenes que ningún negocio usa, incluidas las de negocios eliminados.'
+            : files.length === 0
+              ? 'Todo limpio.'
+              : `${files.length} archivos · ${formatBytes(bytes)} · en ${deleted} ${deleted === 1 ? 'carpeta' : 'carpetas'}`}
+        </small>
+        {msg && <small className={msg.startsWith('Listo') ? 'text-ok' : 'text-error'}>{msg}</small>}
+      </div>
+      {files && files.length > 0 ? (
+        <button className="btn btn--sm btn--primary" disabled={busy} onClick={clean}>{busy ? 'Limpiando…' : 'Liberar espacio'}</button>
+      ) : (
+        <button className="btn btn--sm" disabled={busy} onClick={scan}>{busy ? 'Buscando…' : 'Buscar'}</button>
       )}
     </div>
   )

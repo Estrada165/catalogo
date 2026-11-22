@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { isValidSlug, catalogUrl } from '../../lib/utils'
+import { formatBytes, removeInBatches } from '../../lib/images'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import { IconPlus, IconTrash, IconArrowUp, IconArrowDown, IconCheck } from '../../components/icons'
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'pagos', label: 'Pagos' },
   { key: 'pedido', label: 'Pedido' },
   { key: 'enlace', label: 'Enlace' },
+  { key: 'archivos', label: 'Almacenamiento' },
 ]
 
 export default function Settings() {
@@ -39,8 +41,10 @@ export default function Settings() {
         <PaymentsTab />
       ) : tab === 'pedido' ? (
         <CheckoutTab />
-      ) : (
+      ) : tab === 'enlace' ? (
         <LinkTab />
+      ) : (
+        <StorageTab />
       )}
     </div>
   )
@@ -410,5 +414,65 @@ function LinkTab() {
         <button className="btn btn--primary" disabled={state !== 'ok' || busy} onClick={save}>{busy ? 'Guardando…' : 'Cambiar enlace'}</button>
       </div>
     </Section>
+  )
+}
+
+/* ─────────── Almacenamiento ─────────── */
+function StorageTab() {
+  const { tenant } = useAuth()
+  const [usage, setUsage] = useState(null)
+  const [orphans, setOrphans] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const load = async () => {
+    const [u, o] = await Promise.all([
+      supabase.rpc('storage_usage', { p_tenant: tenant.id }),
+      supabase.rpc('list_orphan_files', { p_tenant: tenant.id }),
+    ])
+    if (u.error || o.error) setMsg((u.error || o.error).message)
+    setUsage(u.data?.[0] || { files: 0, bytes: 0 })
+    setOrphans(o.data || [])
+  }
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clean = async () => {
+    setBusy(true)
+    setMsg('')
+    try {
+      const n = await removeInBatches(orphans.map((f) => f.name))
+      setMsg(`Listo: se borraron ${n} ${n === 1 ? 'archivo' : 'archivos'}.`)
+      await load()
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const orphanBytes = (orphans || []).reduce((s, f) => s + Number(f.bytes || 0), 0)
+
+  return (
+    <>
+      <Section title="Espacio usado" hint="Fotos de productos, logo, foto de Lu y QR de pagos. Las fotos se comprimen al subirlas para ocupar poco.">
+        {!usage ? <Loader /> : (
+          <div className="stats stats--2">
+            <div className="stat"><small>Archivos</small><strong>{usage.files}</strong></div>
+            <div className="stat"><small>Espacio</small><strong>{formatBytes(usage.bytes)}</strong></div>
+          </div>
+        )}
+      </Section>
+      <Section title="Archivos sin usar" hint="Imágenes que ya no aparecen en ningún producto ni en tu configuración: fotos reemplazadas o subidas que no se guardaron. Solo se cuentan las que tienen más de 24 horas.">
+        {!orphans ? <Loader /> : orphans.length === 0 ? (
+          <p className="muted">Todo limpio. No hay archivos sin usar.</p>
+        ) : (
+          <div className="row row--between">
+            <span><strong>{orphans.length}</strong> {orphans.length === 1 ? 'archivo' : 'archivos'} · {formatBytes(orphanBytes)}</span>
+            <button className="btn btn--primary" disabled={busy} onClick={clean}>{busy ? 'Limpiando…' : 'Liberar espacio'}</button>
+          </div>
+        )}
+        {msg && <p className={`alert ${msg.startsWith('Listo') ? 'alert--ok' : 'alert--error'}`}>{msg}</p>}
+      </Section>
+    </>
   )
 }

@@ -103,3 +103,45 @@ export async function removePaths(paths = []) {
   const list = paths.filter(Boolean)
   if (list.length) await supabase.storage.from(BUCKET).remove(list)
 }
+
+// Ruta dentro del bucket a partir de la URL pública
+export function pathFromUrl(url) {
+  const m = String(url || '').match(/\/object\/public\/catalog\/([^?#"\s]+)/)
+  return m ? decodeURIComponent(m[1]) : null
+}
+
+function pathsIn(value) {
+  const text = typeof value === 'string' ? value : JSON.stringify(value || {})
+  const out = new Set()
+  for (const m of text.matchAll(/\/object\/public\/catalog\/([^?#"\s\\]+)/g)) out.add(decodeURIComponent(m[1]))
+  for (const m of text.matchAll(/"path_(?:full|thumb)":"([^"]+)"/g)) out.add(m[1])
+  return out
+}
+
+// Borra los archivos que estaban en "antes" y ya no están en "después"
+export async function cleanupReplaced(before, after) {
+  const prev = pathsIn(before)
+  const next = pathsIn(after)
+  const gone = [...prev].filter((p) => !next.has(p))
+  if (gone.length) await removeInBatches(gone)
+  return gone.length
+}
+
+export async function removeInBatches(paths) {
+  const list = [...new Set(paths.filter(Boolean))]
+  let removed = 0
+  for (let i = 0; i < list.length; i += 100) {
+    const chunk = list.slice(i, i + 100)
+    const { error } = await supabase.storage.from(BUCKET).remove(chunk)
+    if (error) throw new Error(error.message)
+    removed += chunk.length
+  }
+  return removed
+}
+
+export function formatBytes(n) {
+  const b = Number(n) || 0
+  if (b < 1024) return `${b} B`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`
+  return `${(b / 1024 / 1024).toFixed(1)} MB`
+}

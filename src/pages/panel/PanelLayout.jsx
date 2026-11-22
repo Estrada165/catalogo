@@ -2,6 +2,7 @@ import '../../styles/shell.js'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase, APP_NAME } from '../../lib/supabase'
+import { cleanupReplaced } from '../../lib/images'
 import { useAuth } from '../../context/AuthContext'
 import ThemeToggle from '../../components/ThemeToggle'
 import {
@@ -36,12 +37,19 @@ export default function PanelLayout() {
   // Guarda una o varias columnas de tenant_config (business, theme, sections, modules, checkout, bot)
   const saveConfig = useCallback(
     async (patch) => {
+      const before = config
       const { data, error } = await supabase.from('tenant_config').update(patch).eq('tenant_id', tenant.id).select().single()
       if (error) throw error
       setConfig(data)
+      // Logo, foto de Lu o QR de pago reemplazados: se borra el archivo anterior
+      if (before) {
+        const keys = Object.keys(patch)
+        const pick = (c) => Object.fromEntries(keys.map((k) => [k, c?.[k]]))
+        cleanupReplaced(pick(before), pick(data)).catch(() => {})
+      }
       return data
     },
-    [tenant]
+    [tenant, config]
   )
 
   const modules = config?.modules || {}
