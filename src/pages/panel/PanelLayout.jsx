@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { cleanupReplaced } from '../../lib/images'
-import { getContact, waUrl, fillTemplate } from '../../lib/platform'
+import { getContact, waUrl, fillTemplate, planVars } from '../../lib/platform'
 import { catalogUrl, daysLeft, formatDate } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import ThemeToggle from '../../components/ThemeToggle'
@@ -45,11 +45,11 @@ const MOBILE_MAIN = ['/panel', '/panel/productos', '/panel/pedidos', '/panel/apa
 
 function PlanCard({ tenant, contact, compact = false }) {
   const left = daysLeft(tenant.expires_at)
-  const total = 30
+  const total = tenant.cycle_days || 30
   const pct = left === null ? 100 : Math.max(4, Math.min(100, (left / total) * 100))
   const tone = left === null ? 'ok' : left <= 3 ? 'error' : left <= 7 ? 'warn' : 'ok'
   const renew = contact?.whatsapp
-    ? waUrl(contact.whatsapp, fillTemplate(contact.mensaje_renovacion || 'Hola, quiero renovar mi catálogo {negocio} ({enlace}).', { negocio: tenant.name, enlace: catalogUrl(tenant.slug) }))
+    ? waUrl(contact.whatsapp, fillTemplate(contact.mensaje_renovacion || 'Hola, quiero renovar mi catálogo {negocio} ({enlace}).', { ...planVars(tenant), enlace: catalogUrl(tenant.slug) }))
     : null
   if (compact) {
     return (
@@ -66,6 +66,7 @@ function PlanCard({ tenant, contact, compact = false }) {
       </div>
       <div className="plan-card__bar"><span style={{ width: `${pct}%` }} /></div>
       <small className="muted">{tenant.expires_at ? `Vence el ${formatDate(tenant.expires_at)}` : 'Sin fecha de vencimiento'}</small>
+      {tenant.price != null && <small className="muted plan-card__price">S/ {Number(tenant.price).toFixed(2)} cada {tenant.cycle_days || 30} días</small>}
       {renew && left !== null && left <= 7 && <a className="btn btn--sm btn--block" href={renew} target="_blank" rel="noreferrer">Renovar</a>}
     </div>
   )

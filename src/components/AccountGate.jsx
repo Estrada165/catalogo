@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Hourglass, PauseCircle, CalendarX2, MessageCircle, RefreshCw, LogOut, ExternalLink } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { getContact, waUrl, fillTemplate } from '../lib/platform'
+import { getContact, waUrl, fillTemplate, planVars } from '../lib/platform'
 import { catalogUrl, daysLeft } from '../lib/utils'
 import ThemeToggle from './ThemeToggle'
 
@@ -49,7 +49,7 @@ export default function AccountGate({ state }) {
   useEffect(() => { getContact().then(setContact) }, [])
 
   const message = fillTemplate(contact?.[c.tpl] || 'Hola, quiero activar mi catálogo {negocio} ({enlace}).', {
-    negocio: tenant.name,
+    ...planVars(tenant, profile?.full_name),
     enlace: catalogUrl(tenant.slug),
     nombre: profile?.full_name || '',
   })

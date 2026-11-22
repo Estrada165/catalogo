@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { clearContactCache, waUrl, fillTemplate } from '../../lib/platform'
+import { clearContactCache, waUrl, fillTemplate, planVars } from '../../lib/platform'
+import { DEFAULT_COBRO } from './AdminTenants'
 import Loader from '../../components/Loader'
 import { Field, SaveBar, Section, useDraft, useSaver } from '../panel/ui'
 
@@ -9,6 +10,7 @@ const DEFAULTS = {
   whatsapp: '',
   mensaje_activacion: 'Hola, acabo de registrar mi negocio {negocio} ({enlace}) y quiero activar mi catálogo. 🙌',
   mensaje_renovacion: 'Hola, quiero renovar el plan de mi catálogo {negocio} ({enlace}). 🔄',
+  mensaje_cobro: DEFAULT_COBRO,
 }
 
 export default function AdminSettings() {
@@ -28,7 +30,8 @@ export default function AdminSettings() {
   })
 
   if (!d) return <div className="page"><Loader /></div>
-  const sample = { negocio: 'Ferretería Don Pepe', enlace: `${location.host}/don-pepe` }
+  const sampleTenant = { name: 'Ferretería Don Pepe', slug: 'don-pepe', price: 30, cycle_days: 30, expires_at: new Date(Date.now() + 3 * 86400000).toISOString() }
+  const sample = planVars(sampleTenant, 'José Pérez')
 
   return (
     <div className="page page--narrow">
@@ -38,7 +41,7 @@ export default function AdminSettings() {
           <input inputMode="numeric" placeholder="9XXXXXXXX" value={String(d.whatsapp || '').replace(/^51(?=9\d{8}$)/, '')} onChange={(e) => set({ whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })} />
         </Field>
       </Section>
-      <Section title="Mensajes" hint="Usa {negocio} y {enlace}: se reemplazan solos. Puedes usar emojis.">
+      <Section title="Mensajes" hint="Usa {negocio}, {enlace}, {precio} y {vence}: se reemplazan solos. Puedes usar emojis.">
         <Field label="Para activar una cuenta nueva">
           <textarea rows={3} maxLength={400} value={d.mensaje_activacion} onChange={(e) => set({ mensaje_activacion: e.target.value })} />
         </Field>
@@ -50,6 +53,12 @@ export default function AdminSettings() {
         {d.whatsapp && (
           <a className="btn btn--sm btn--wa" href={waUrl(d.whatsapp, fillTemplate(d.mensaje_activacion, sample))} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Probar el mensaje</a>
         )}
+      </Section>
+      <Section title="Mensaje de cobro" hint="Lo envías tú al dueño desde Negocios (botón Cobrar). Variables: {dueño} {negocio} {enlace} {precio} {periodo} {vence} {dias}.">
+        <Field label="Recordatorio de pago">
+          <textarea rows={4} maxLength={500} value={d.mensaje_cobro} onChange={(e) => set({ mensaje_cobro: e.target.value })} />
+        </Field>
+        <p className="preview-msg">{fillTemplate(d.mensaje_cobro, sample)}</p>
       </Section>
       <SaveBar dirty={dirty} {...saver} onSave={saver.run} onReset={reset} />
     </div>

@@ -26,5 +26,22 @@ export function waUrl(phone, text) {
 }
 
 export function fillTemplate(tpl, vars) {
-  return String(tpl || '').replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+  return String(tpl || '').replace(/\{([\p{L}\d_]+)\}/gu, (m, k) => vars[k] ?? vars[k.normalize('NFD').replace(/[\u0300-\u036f]/g, '')] ?? m)
+}
+
+// Variables para los mensajes de cobro y renovación
+export function planVars(tenant, ownerName = '') {
+  const left = tenant?.expires_at ? Math.ceil((new Date(tenant.expires_at).getTime() - Date.now()) / 86400000) : null
+  const fecha = tenant?.expires_at ? new Date(tenant.expires_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'long' }) : 'sin fecha'
+  const nombre = String(ownerName || '').trim().split(/\s+/)[0] || ''
+  return {
+    negocio: tenant?.name || '',
+    enlace: tenant?.slug ? `${location.host}/${tenant.slug}` : '',
+    nombre,
+    dueno: nombre,
+    precio: tenant?.price != null ? `S/ ${Number(tenant.price).toFixed(2)}` : 'por confirmar',
+    periodo: String(tenant?.cycle_days || 30),
+    vence: fecha,
+    dias: left === null ? 'sin vencimiento' : left > 1 ? `quedan ${left} días` : left === 1 ? 'queda 1 día' : left === 0 ? 'vence hoy' : `venció hace ${-left} ${left === -1 ? 'día' : 'días'}`,
+  }
 }
