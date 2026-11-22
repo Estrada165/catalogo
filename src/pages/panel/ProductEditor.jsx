@@ -503,7 +503,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                 <IconPlus width={16} height={16} /> Campo
               </button>
             </div>
-            <small className="muted">Datos libres que se muestran en el detalle: marca, aroma, material, medida, garantía…</small>
+            <small className="muted">Datos libres que se muestran en el detalle: marca, aroma, talla, material, medida… Si varios productos usan el mismo campo (ej. Marca), aparece como filtro en tu catálogo.</small>
             {form.attributes.map((a) => (
               <div key={a.key} className="attr-row">
                 <input placeholder="Campo (ej. Marca)" value={a.name} onChange={(e) => set({ attributes: form.attributes.map((x) => (x.key === a.key ? { ...x, name: e.target.value } : x)) })} />

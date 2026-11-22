@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Search, X, Moon, Sun, ShoppingBag, MessageCircle, Plus, ChevronRight, Clock, MapPin, Truck, Store,
-  FileText, Check, Instagram, Facebook, Music2, Star, Eye, Wallet, Bot, Flame, Info, MousePointerClick,
+  FileText, Check, Instagram, Facebook, Music2, Star, Eye, Wallet, Bot, Flame, Info, MousePointerClick, SlidersHorizontal, ArrowUpDown,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getSessionId } from '../lib/utils'
-import { fetchCatalog, normalizeCatalog } from './lib/data'
+import { fetchCatalog, normalizeCatalog, facetValue, fold } from './lib/data'
 import { cartReducer, summarize, waLink } from './lib/cart'
 import { money, store } from './lib/format'
 import { applyPalette } from './lib/color'
@@ -25,6 +25,14 @@ import { StateScreen, LoadingScreen } from './components/StateScreens'
 import './styles/tokens.css'
 import './styles/catalog.css'
 import './styles/products.css'
+
+const SORTS = [
+  { key: 'default', label: 'Recomendados' },
+  { key: 'price_asc', label: 'Menor precio' },
+  { key: 'price_desc', label: 'Mayor precio' },
+  { key: 'new', label: 'Más nuevos' },
+  { key: 'name', label: 'Nombre (A–Z)' },
+]
 
 function track(slug, type, product = null, meta = {}) {
   supabase.rpc('track_event', { p_slug: slug, p_type: type, p_session: getSessionId(), p_product: product, p_meta: meta })
@@ -83,6 +91,10 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const [policyOpen, setPolicyOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [howOpen, setHowOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [sort, setSort] = useState('default')
+  const [picked, setPicked] = useState({}) // { marca: ['stanley', ...] }
+  const [range, setRange] = useState({ min: '', max: '' })
   const [toastMsg, setToastMsg] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [theme, setTheme] = useState(() => {
@@ -149,10 +161,36 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   }, [cat])
   // La barra aparece apenas haya una categoría con productos; lo que no tiene categoría va a "Otros"
   const showCats = cat.sections.on('categories') && groups.length > 0
-  const grouped = showCats && !words.length && catId === 'all'
   const navCats = groups.map((g) => ({ id: g.id, name: g.name, count: g.items.length }))
   const inCat = (p, id) => id === 'all' || (id === 'otros' ? !p.category_id : p.category_id === id)
-  const visible = cat.products.filter((p) => inCat(p, catId) && matches(p))
+  // Filtros y orden (sirven para cualquier rubro: salen de precios y características)
+  const priceOf = (p) => priceInfo(p).price
+  const facetOk = (p) => Object.entries(picked).every(([k, vals]) => !vals.length || vals.includes(facetValue(p, k)))
+  const pMin = range.min === '' ? null : Number(range.min)
+  const pMax = range.max === '' ? null : Number(range.max)
+  const priceOk = (p) => (pMin === null && pMax === null) || (priceOf(p) !== null && (pMin === null || priceOf(p) >= pMin) && (pMax === null || priceOf(p) <= pMax))
+  const activeFilters = Object.values(picked).reduce((n, v) => n + v.length, 0) + (pMin !== null || pMax !== null ? 1 : 0)
+  const filtering = activeFilters > 0 || sort !== 'default'
+  const sortList = (arr) => {
+    if (sort === 'default') return arr
+    const nul = (a, b, f) => (f(a) === null) - (f(b) === null)
+    const by = {
+      price_asc: (a, b) => nul(a, b, priceOf) || priceOf(a) - priceOf(b),
+      price_desc: (a, b) => nul(a, b, priceOf) || priceOf(b) - priceOf(a),
+      new: (a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')),
+      name: (a, b) => a.name.localeCompare(b.name, 'es'),
+    }[sort]
+    return [...arr].sort((a, b) => (a.soldOut - b.soldOut) || by(a, b))
+  }
+  const visible = sortList(cat.products.filter((p) => inCat(p, catId) && matches(p) && facetOk(p) && priceOk(p)))
+  const prices = cat.products.map(priceOf).filter((x) => x !== null)
+  const showTools = cat.products.length >= 4
+  const clearFilters = () => { setPicked({}); setRange({ min: '', max: '' }); setSort('default') }
+  const togglePick = (key, val) => setPicked((cur) => {
+    const list = cur[key] || []
+    return { ...cur, [key]: list.includes(val) ? list.filter((x) => x !== val) : [...list, val] }
+  })
+  const grouped = showCats && !words.length && catId === 'all' && activeFilters === 0 && sort === 'default'
   const groupName = (id) => groups.find((g) => g.id === id)?.name || 'Productos'
   const summary = useMemo(() => summarize(lines, cat), [lines, cat])
   const qtyOf = (p) => (p.variants.length === 1 ? lines.find((l) => l.variantId === p.variants[0].id)?.qty || 0 : lines.filter((l) => p.variants.some((v) => v.id === l.variantId)).length)
@@ -362,7 +400,7 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
           )}
         </section>
 
-        {featured.length > 0 && !words.length && (
+        {featured.length > 0 && !words.length && !filtering && (
           <section className="section wrap feat" aria-labelledby="feat-title">
             <div className="section__head">
               <h2 className="section__title" id="feat-title"><Star size={20} className="section__icon" /> Destacados</h2>
@@ -375,6 +413,34 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
           <div className="ctrl" id="catalogo">
             <div className="wrap ctrl__in">
               <CategoryNav cats={navCats} total={cat.products.length} active={grouped ? spy : catId} onPick={pickCat} />
+            </div>
+          </div>
+        )}
+
+        {showTools && (
+          <div className="wrap tools">
+            <label className="tools__sort">
+              <ArrowUpDown size={15} />
+              <span className="sr-only">Ordenar</span>
+              <select value={sort} onChange={(e) => { setSort(e.target.value); haptic(8) }}>
+                {SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+              </select>
+            </label>
+            <button className={`tools__btn${activeFilters ? ' is-on' : ''}`} onClick={() => setFiltersOpen(true)}>
+              <SlidersHorizontal size={15} /> Filtros{activeFilters > 0 && <em className="tnum">{activeFilters}</em>}
+            </button>
+            <div className="tools__chips">
+              {Object.entries(picked).flatMap(([k, vals]) => vals.map((v) => {
+                const f = cat.facets.find((x) => x.key === k)
+                const label = f?.values.find((x) => fold(x.value) === v)?.value || v
+                return <button key={k + v} className="tools__chip" onClick={() => togglePick(k, v)}>{label} <X size={13} /></button>
+              }))}
+              {(pMin !== null || pMax !== null) && (
+                <button className="tools__chip" onClick={() => setRange({ min: '', max: '' })}>
+                  {pMin !== null && pMax !== null ? `${money(pMin, sym)} – ${money(pMax, sym)}` : pMin !== null ? `Desde ${money(pMin, sym)}` : `Hasta ${money(pMax, sym)}`} <X size={13} />
+                </button>
+              )}
+              {filtering && <button className="link-btn tools__clear" onClick={clearFilters}>Limpiar</button>}
             </div>
           </div>
         )}
@@ -408,7 +474,8 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
             </>
           ) : (
             <div className="empty">
-              <b>{words.length ? `Nada con “${q.trim()}”` : 'Aún no hay productos aquí'}</b>
+              <b>{words.length ? `Nada con “${q.trim()}”` : activeFilters ? 'Ningún producto con esos filtros' : 'Aún no hay productos aquí'}</b>
+              {activeFilters > 0 && !words.length && <button className="link-btn" onClick={clearFilters}>Quitar filtros</button>}
               {words.length > 0 && botReady ? (
                 <>Pregúntale a <button className="link-btn" onClick={askHelp}>{cat.bot.name}</button> o escríbenos.</>
               ) : words.length > 0 && s.whatsapp ? (
@@ -470,6 +537,46 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
         onAdd={(v, qty, el) => { add({ ...v, product: detail }, el, qty); toast(`${detail.name} en tu carrito`); setTimeout(closeDetail, 120) }} />
       <InfoSheet open={infoOpen} onClose={() => setInfoOpen(false)} cat={cat} sym={sym} status={status} hours={hours}
         deliveryOn={deliveryOn} pickupOn={pickupOn} showAddress={showAddress} showHours={showHours} showSocial={social.length > 0} />
+      <Sheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="Ordenar y filtrar"
+        footer={(
+          <div className="filters-foot">
+            <button className="key key--lg" onClick={clearFilters} disabled={!filtering}>Limpiar</button>
+            <button className="key key--accent key--lg" onClick={() => { setFiltersOpen(false); setTimeout(() => goTo('.tools'), 200) }}>
+              Ver {visible.length} {visible.length === 1 ? 'producto' : 'productos'}
+            </button>
+          </div>
+        )}>
+        <div className="flt">
+          <section>
+            <h4>Ordenar por</h4>
+            <div className="flt__chips">
+              {SORTS.map((o) => <button key={o.key} aria-pressed={sort === o.key} onClick={() => setSort(o.key)}>{o.label}</button>)}
+            </div>
+          </section>
+          {prices.length >= 2 && (
+            <section>
+              <h4>Precio</h4>
+              <div className="flt__range">
+                <label><span>Desde</span><input inputMode="decimal" placeholder={money(Math.floor(Math.min(...prices)), sym)} value={range.min} onChange={(e) => setRange((r) => ({ ...r, min: e.target.value.replace(/[^\d.]/g, '') }))} /></label>
+                <span aria-hidden="true">—</span>
+                <label><span>Hasta</span><input inputMode="decimal" placeholder={money(Math.ceil(Math.max(...prices)), sym)} value={range.max} onChange={(e) => setRange((r) => ({ ...r, max: e.target.value.replace(/[^\d.]/g, '') }))} /></label>
+              </div>
+            </section>
+          )}
+          {cat.facets.map((f) => (
+            <section key={f.key}>
+              <h4>{f.label}</h4>
+              <div className="flt__chips">
+                {f.values.map((v) => {
+                  const vk = fold(v.value)
+                  const on = (picked[f.key] || []).includes(vk)
+                  return <button key={vk} aria-pressed={on} onClick={() => togglePick(f.key, vk)}>{v.value} <em className="tnum">{v.count}</em></button>
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </Sheet>
       <Sheet open={howOpen} onClose={() => setHowOpen(false)} title="¿Cómo comprar?"
         footer={<button className="key key--accent key--block key--lg" onClick={() => { setHowOpen(false); setTimeout(() => goTo('#catalogo-grid'), 250) }}>Ver productos <ChevronRight size={17} /></button>}>
         <ol className="how">{howSteps.map((t, i) => <li key={i}><span className="tnum">{i + 1}</span><p>{t}</p></li>)}</ol>

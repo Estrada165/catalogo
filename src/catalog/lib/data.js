@@ -80,6 +80,7 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
         tags: p.tags || [],
         badge: p.badge || null,
         featured: !!p.featured,
+        created_at: p.created_at || null,
         category_id: p.category_id && catById[p.category_id] ? p.category_id : null,
         variants,
         soldOut: variants.length > 0 && sellable.length === 0,
@@ -92,6 +93,7 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
     .sort((a, b) => a.sort - b.sort)
 
   const byId = Object.fromEntries(list.map((p) => [p.id, p]))
+  const facets = buildFacets(list)
   const variantById = {}
   list.forEach((p) => p.variants.forEach((v) => (variantById[v.id] = { ...v, product: p })))
 
@@ -103,6 +105,7 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
     payment_methods: Array.isArray(checkout.payment_methods) ? checkout.payment_methods.filter((m) => m && m.name) : [],
     sections: { on: sectionOn, props: sectionProps },
     categories: usedCats,
+    facets,
     catById,
     products: list,
     byId,
@@ -119,6 +122,45 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
     },
   }
 }
+
+// Filtros automáticos a partir de las características (Marca, Aroma, Talla, Color…):
+// solo aparecen las que se repiten en varios productos, así sirven para cualquier rubro
+const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+const PRIORITY = /^(marca|brand|fabricante|laboratorio)$/
+function buildFacets(list) {
+  const keys = new Map()
+  list.forEach((p) => {
+    Object.entries(p.attributes || {}).forEach(([k, v]) => {
+      const key = fold(k)
+      const val = String(v ?? '').trim()
+      if (!key || !val || val.length > 40) return
+      if (!keys.has(key)) keys.set(key, { key, labels: new Map(), values: new Map(), products: new Set() })
+      const f = keys.get(key)
+      f.labels.set(k.trim(), (f.labels.get(k.trim()) || 0) + 1)
+      const vk = fold(val)
+      const cur = f.values.get(vk) || { value: val, count: 0 }
+      cur.count++
+      f.values.set(vk, cur)
+      f.products.add(p.id)
+    })
+  })
+  return [...keys.values()]
+    .filter((f) => f.values.size >= 2 && f.values.size <= 40 && f.products.size >= 2)
+    .map((f) => ({
+      key: f.key,
+      label: [...f.labels.entries()].sort((a, b) => b[1] - a[1])[0][0],
+      values: [...f.values.values()].sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'es')),
+      coverage: f.products.size,
+    }))
+    .sort((a, b) => (PRIORITY.test(b.key) ? 1 : 0) - (PRIORITY.test(a.key) ? 1 : 0) || b.coverage - a.coverage)
+    .slice(0, 4)
+}
+
+export const facetValue = (p, key) => {
+  const hit = Object.entries(p.attributes || {}).find(([k]) => fold(k) === key)
+  return hit ? fold(hit[1]) : null
+}
+export { fold }
 
 export async function fetchCatalog(slug) {
   const { data: tenant, error } = await supabase
