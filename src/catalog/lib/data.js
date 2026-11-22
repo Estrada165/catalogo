@@ -140,14 +140,7 @@ export async function fetchCatalog(slug) {
   if (failed) throw failed.error
 
   const live = tenant.status === 'activo' && (!tenant.expires_at || new Date(tenant.expires_at) > new Date())
-  const cat = normalizeCatalog({
-    tenant,
-    config: cfg.data,
-    categories: cats.data,
-    products: prods.data,
-    zones: zones.data,
-    faqs: faqs.data,
-  })
+  const raw = { tenant, config: cfg.data, categories: cats.data, products: prods.data, zones: zones.data, faqs: faqs.data }
   // Si el negocio no está activo y aun así lo vemos, es su dueño (o el superadmin) en vista previa
-  return { state: 'ok', preview: !live, ...cat }
+  return { state: 'ok', preview: !live, raw, ...normalizeCatalog(raw) }
 }

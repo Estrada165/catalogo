@@ -82,41 +82,51 @@ export function normalizePhone(raw) {
   return digits
 }
 
+// api.whatsapp.com conserva bien los emojis (wa.me a veces los convierte en "�" al redirigir)
 export function waLink(phone, text) {
-  return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(text)}`
+  const p = normalizePhone(phone)
+  return `https://api.whatsapp.com/send?${p ? `phone=${p}&` : ''}text=${encodeURIComponent(String(text || '').normalize('NFC'))}`
+}
+
+// Corta sin partir un emoji por la mitad
+export function clip(text, max) {
+  const chars = Array.from(String(text || ''))
+  return chars.length > max ? chars.slice(0, max).join('') + '…' : chars.join('')
 }
 
 export function buildOrderMessage({ order, customer, checkout, method, businessName }) {
   const L = []
-  L.push(checkout?.message_header || `Hola, quiero hacer este pedido en ${businessName}:`)
+  L.push(checkout?.message_header ? `👋 ${checkout.message_header}` : `👋 Hola, quiero hacer este pedido en *${businessName}*:`)
   L.push('')
-  L.push(`Pedido: *${order.code}*`)
+  L.push(`🧾 Pedido: *${order.code}*`)
   L.push('')
+  L.push('🛒 *Productos*')
   for (const it of order.items) {
     const variant = it.variant && it.variant !== 'Único' ? ` (${it.variant})` : ''
     const price = it.line_total === null || it.line_total === undefined ? 'a consultar' : money(it.line_total)
     const qty = it.unit && it.unit !== 'und' ? fmtQty(it.qty, it.unit) : `${fmtQty(it.qty)} x`
-    L.push(`- ${qty} ${it.product}${variant}: ${price}`)
+    L.push(`• ${qty} ${it.product}${variant} — ${price}`)
   }
   L.push('')
   if (Number(order.delivery) > 0 || customer.delivery === 'delivery') {
-    L.push(`Subtotal: ${money(order.subtotal)}`)
-    L.push(`Delivery${customer.zone_name ? ` (${customer.zone_name})` : ''}: ${Number(order.delivery) > 0 ? money(order.delivery) : 'por confirmar'}`)
+    L.push(`💵 Subtotal: ${money(order.subtotal)}`)
+    L.push(`🛵 Delivery${customer.zone_name ? ` (${customer.zone_name})` : ''}: ${Number(order.delivery) > 0 ? money(order.delivery) : 'por confirmar'}`)
   }
-  if (Number(order.total) > 0) L.push(`*Total: ${money(order.total)}*${order.has_quote_items ? ' + productos a consultar' : ''}`)
-  else if (order.has_quote_items) L.push('*Total: a consultar*')
-  L.push('')
-  if (customer.name) L.push(`Nombre: ${customer.name}`)
-  if (customer.phone) L.push(`Celular: ${customer.phone}`)
-  if (customer.delivery === 'delivery') L.push(`Entrega: delivery${customer.address ? `, ${customer.address}` : ''}`)
-  if (customer.delivery === 'recojo') L.push('Entrega: recojo en tienda')
-  if (customer.date) L.push(`Fecha de entrega: ${customer.date}`)
-  if (customer.dedication) L.push(`Dedicatoria: ${customer.dedication}`)
-  if (customer.note) L.push(`Nota: ${customer.note}`)
-  if (method) L.push(`Pago: ${method.name}`)
+  if (Number(order.total) > 0) L.push(`✅ *Total: ${money(order.total)}*${order.has_quote_items ? ' + productos a consultar' : ''}`)
+  else if (order.has_quote_items) L.push('✅ *Total: a consultar*')
+  const who = []
+  if (customer.name) who.push(`👤 ${customer.name}`)
+  if (customer.phone) who.push(`📱 ${customer.phone}`)
+  if (customer.delivery === 'delivery') who.push(`📍 Delivery${customer.address ? `: ${customer.address}` : ''}`)
+  if (customer.delivery === 'recojo') who.push('🏪 Recojo en tienda')
+  if (customer.date) who.push(`📅 Entrega: ${customer.date}`)
+  if (customer.dedication) who.push(`💌 Dedicatoria: ${customer.dedication}`)
+  if (customer.note) who.push(`📝 ${customer.note}`)
+  if (method) who.push(`💳 Pago: ${method.name}`)
+  if (who.length) { L.push(''); L.push(...who) }
   return L.join('\n')
 }
 
 export function consultMessage(name, businessName) {
-  return `Hola, vi el catálogo de ${businessName} y quiero consultar por: ${name}`
+  return `👋 Hola, vi el catálogo de *${businessName}* y quiero consultar por: ${name}`
 }

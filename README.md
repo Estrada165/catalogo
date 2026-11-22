@@ -12,6 +12,7 @@ Plataforma de catálogos digitales para negocios de cualquier rubro (ferretería
    - `supabase/004_slugs_reservados.sql`: palabras reservadas y verificación de enlaces
    - `supabase/005_realtime_pedidos.sql`: los pedidos nuevos aparecen solos en el panel
    - `supabase/006_limpieza_archivos.sql`: detección de archivos sin usar y uso de almacenamiento
+   - `supabase/007_plataforma_y_activacion.sql`: WhatsApp de contacto del admin, almacenamiento por negocio, plantillas base en monocromo
    - `supabase/003_cron_opcional.sql`: opcional, requiere activar la extensión `pg_cron`
 
 2. **Variables de entorno.** Copiar `.env.example` como `.env` y completar con los datos de *Project Settings → API*.

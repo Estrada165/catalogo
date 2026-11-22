@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase'
 import { removeImages, uploadProductImage } from '../../lib/images'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
+import Cropper from '../../components/Cropper'
+import { Crop } from 'lucide-react'
 import { IconClose, IconImage, IconPlus, IconTrash, IconArrowUp, IconArrowDown } from '../../components/icons'
 
 const UNITS = [
@@ -67,6 +69,8 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
   const [error, setError] = useState('')
   const [tagInput, setTagInput] = useState('')
   const [newCat, setNewCat] = useState(null)
+  const [queue, setQueue] = useState([])
+  const [adjusting, setAdjusting] = useState(null)
   const uploadedThisSession = useRef([])
   const removedImages = useRef([])
   const fileInput = useRef(null)
@@ -92,21 +96,33 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
     onClose()
   }
 
-  const onFiles = async (files) => {
+  const onFiles = (files) => {
     setError('')
-    const list = Array.from(files || []).slice(0, MAX_IMAGES - form.images.length)
-    if (!list.length) return
-    setUploading((n) => n + list.length)
-    for (const file of list) {
-      try {
-        const img = await uploadProductImage(tenantId, file)
-        uploadedThisSession.current.push(img)
-        setForm((f) => ({ ...f, images: [...f.images, img] }))
-      } catch (e) {
-        setError(e.message)
-      } finally {
-        setUploading((n) => n - 1)
-      }
+    const list = Array.from(files || []).filter((f) => f.type.startsWith('image/')).slice(0, Math.max(0, MAX_IMAGES - form.images.length - queue.length))
+    if (list.length) setQueue((q) => [...q, ...list])
+  }
+
+  // Sube la imagen ya ajustada; si `replaceIdx` viene, reemplaza esa foto
+  const uploadCropped = async (blob, replaceIdx = null) => {
+    setUploading((n) => n + 1)
+    try {
+      const img = await uploadProductImage(tenantId, blob)
+      uploadedThisSession.current.push(img)
+      setForm((f) => {
+        if (replaceIdx === null) return { ...f, images: [...f.images, img] }
+        const old = f.images[replaceIdx]
+        if (old) {
+          if (uploadedThisSession.current.includes(old)) {
+            uploadedThisSession.current = uploadedThisSession.current.filter((i) => i !== old)
+            removeImages([old])
+          } else removedImages.current.push(old)
+        }
+        return { ...f, images: f.images.map((x, i) => (i === replaceIdx ? img : x)) }
+      })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setUploading((n) => n - 1)
     }
   }
 
@@ -249,13 +265,13 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
   return (
     <div className="drawer" role="dialog" aria-modal="true">
       <div className="drawer__backdrop" onClick={cancel} />
-      <div className="drawer__panel">
+      <div className="drawer__panel drawer__panel--editor">
         <header className="drawer__head">
           <h2 className="display">{product ? 'Editar producto' : 'Nuevo producto'}</h2>
           <button className="icon-btn" onClick={cancel} aria-label="Cerrar"><IconClose /></button>
         </header>
 
-        <div className="drawer__body">
+        <div className="drawer__body editor-body">
           <section className="form-block">
             <h3 className="form-block__title">Fotos</h3>
             <div className="image-grid">
@@ -264,6 +280,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                   <img src={img.thumb || img.full} alt="" />
                   {i === 0 && <span className="image-tile__cover">Portada</span>}
                   <div className="image-tile__actions">
+                    <button type="button" onClick={() => setAdjusting(i)} aria-label="Ajustar foto" title="Ajustar"><Crop size={15} /></button>
                     <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} aria-label="Mover antes"><IconArrowUp width={15} height={15} /></button>
                     <button type="button" onClick={() => moveImage(i, 1)} disabled={i === form.images.length - 1} aria-label="Mover después"><IconArrowDown width={15} height={15} /></button>
                     <button type="button" onClick={() => removeImage(i)} aria-label="Quitar foto"><IconTrash width={15} height={15} /></button>
@@ -300,7 +317,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                 e.target.value = ''
               }}
             />
-            <small className="muted">Hasta {MAX_IMAGES} fotos. Se optimizan automáticamente sin perder calidad visible.</small>
+            <small className="muted">Hasta {MAX_IMAGES} fotos. Al subirlas puedes moverlas y acercarlas para mostrar lo que quieras; la primera es la portada.</small>
           </section>
 
           <section className="form-block">
@@ -468,6 +485,32 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
           </div>
         </footer>
       </div>
+      {queue.length > 0 && (
+        <Cropper
+          key={queue[0].name + queue.length}
+          source={queue[0]}
+          aspect={1}
+          size={1200}
+          fit
+          background="#ffffff"
+          title={queue.length > 1 ? `Ajusta la foto (${queue.length} pendientes)` : 'Ajusta la foto'}
+          subtitle="Así se verá en la tarjeta del catálogo. Aleja para mostrarla completa."
+          onClose={() => setQueue((q) => q.slice(1))}
+          onDone={async (blob) => { setQueue((q) => q.slice(1)); uploadCropped(blob) }}
+        />
+      )}
+      {adjusting !== null && form.images[adjusting] && (
+        <Cropper
+          source={form.images[adjusting].full}
+          aspect={1}
+          size={1200}
+          fit
+          background="#ffffff"
+          title="Ajusta la foto"
+          onClose={() => setAdjusting(null)}
+          onDone={async (blob) => { const i = adjusting; setAdjusting(null); uploadCropped(blob, i) }}
+        />
+      )}
     </div>
   )
 }

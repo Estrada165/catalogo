@@ -59,7 +59,7 @@ export default function PanelHome() {
 
       {config && counts.products !== null && <Checklist config={config} products={counts.products} />}
 
-      <section className="card link-card">
+      <section className="card link-card" data-tour="link">
         <div>
           <small className="muted">Enlace de tu catálogo</small>
           <p className="link-card__url">{url}</p>
@@ -105,7 +105,7 @@ function Checklist({ config, products }) {
   const left = steps.filter((x) => !x.done)
   if (!left.length) return null
   return (
-    <section className="card checklist">
+    <section className="card checklist" data-tour="checklist">
       <div className="checklist__head">
         <h2 className="display">Deja tu catálogo listo</h2>
         <span className="muted">{steps.length - left.length} de {steps.length}</span>

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { uploadAsset } from '../../lib/images'
 import { IconImage, IconTrash } from '../../components/icons'
 import Loader from '../../components/Loader'
+import Cropper from '../../components/Cropper'
+import { Crop } from 'lucide-react'
 
 // Copia editable de un objeto, con "hay cambios" y "deshacer"
 export function useDraft(source) {
@@ -17,9 +19,9 @@ export function useDraft(source) {
   return [draft, set, dirty, reset, setDraft]
 }
 
-export function Section({ title, hint, action, children }) {
+export function Section({ title, hint, action, children, tour }) {
   return (
-    <section className="form-block">
+    <section className="form-block" data-tour={tour}>
       {(title || action) && (
         <div className="form-block__head">
           <h3 className="form-block__title">{title}</h3>
@@ -80,16 +82,17 @@ export function useSaver(fn) {
   return { saving, error, saved, run }
 }
 
-export function ImagePicker({ tenantId, folder, value, onChange, size = 512, label = 'Subir imagen', round = false }) {
+export function ImagePicker({ tenantId, folder, value, onChange, size = 512, label = 'Subir imagen', round = false, crop = {}, small = false }) {
   const input = useRef(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const pick = async (file) => {
-    if (!file) return
+  const [source, setSource] = useState(null)
+
+  const upload = async (blob) => {
     setBusy(true)
     setError('')
     try {
-      const out = await uploadAsset(tenantId, file, folder, size)
+      const out = await uploadAsset(tenantId, blob, folder, size)
       onChange(out)
     } catch (e) {
       setError(e.message)
@@ -97,16 +100,35 @@ export function ImagePicker({ tenantId, folder, value, onChange, size = 512, lab
       setBusy(false)
     }
   }
+
   return (
-    <div className="img-picker">
-      <button type="button" className={`img-picker__box ${round ? 'is-round' : ''}`} onClick={() => input.current?.click()}>
+    <div className={`img-picker ${small ? 'img-picker--sm' : ''}`}>
+      <button type="button" className={`img-picker__box ${round ? 'is-round' : ''} ${value ? 'has-img' : ''}`} onClick={() => input.current?.click()} aria-label={value ? 'Cambiar imagen' : label}>
         {busy ? <Loader /> : value ? <img src={value} alt="" /> : <><IconImage /><small>{label}</small></>}
       </button>
       {value && !busy && (
-        <button type="button" className="btn btn--sm btn--ghost" onClick={() => onChange(null)}><IconTrash width={15} height={15} /> Quitar</button>
+        <div className="img-picker__actions">
+          <button type="button" className="btn btn--sm" onClick={() => setSource(value)}><Crop size={14} /> Ajustar</button>
+          <button type="button" className="btn btn--sm btn--ghost" onClick={() => onChange(null)}><IconTrash width={14} height={14} /> Quitar</button>
+        </div>
       )}
       {error && <small className="text-error">{error}</small>}
-      <input ref={input} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+      <input ref={input} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setSource(f); e.target.value = '' }} />
+      {source && (
+        <Cropper
+          source={source}
+          shape={round ? 'circle' : 'rect'}
+          aspect={crop.aspect || 1}
+          size={size}
+          fit={crop.fit ?? !round}
+          background={crop.background ?? null}
+          guide={crop.guide || null}
+          title={crop.title}
+          subtitle={crop.subtitle}
+          onClose={() => setSource(null)}
+          onDone={async (blob) => { setSource(null); await upload(blob) }}
+        />
+      )}
     </div>
   )
 }

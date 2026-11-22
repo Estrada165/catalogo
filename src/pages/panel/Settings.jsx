@@ -3,20 +3,19 @@ import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { isValidSlug, catalogUrl } from '../../lib/utils'
-import { formatBytes, removeInBatches } from '../../lib/images'
 import Switch from '../../components/Switch'
+import { Store, Clock, Truck, Wallet, MessageSquareText, Link2, Info } from 'lucide-react'
 import Loader from '../../components/Loader'
 import { IconPlus, IconTrash, IconArrowUp, IconArrowDown, IconCheck } from '../../components/icons'
 import { Field, ImagePicker, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
 
 const TABS = [
-  { key: 'negocio', label: 'Negocio' },
-  { key: 'horario', label: 'Horario' },
-  { key: 'entrega', label: 'Entrega' },
-  { key: 'pagos', label: 'Pagos' },
-  { key: 'pedido', label: 'Pedido' },
-  { key: 'enlace', label: 'Enlace' },
-  { key: 'archivos', label: 'Almacenamiento' },
+  { key: 'negocio', label: 'Negocio', desc: 'Logo, nombre, WhatsApp y redes', icon: Store },
+  { key: 'horario', label: 'Horario', desc: 'Días y horas de atención', icon: Clock },
+  { key: 'entrega', label: 'Entrega', desc: 'Delivery, recojo o solo vitrina', icon: Truck },
+  { key: 'pagos', label: 'Pagos', desc: 'Yape, Plin, bancos y QR', icon: Wallet },
+  { key: 'pedido', label: 'Pedido', desc: 'Qué datos pides y el mensaje', icon: MessageSquareText },
+  { key: 'enlace', label: 'Enlace', desc: 'La dirección de tu catálogo', icon: Link2 },
 ]
 
 export default function Settings() {
@@ -24,11 +23,20 @@ export default function Settings() {
   const [tab, setTab] = useState('negocio')
 
   return (
-    <div className="page page--narrow">
+    <div className="page">
       <header className="page__head">
         <h1 className="display">Configuración</h1>
       </header>
-      <Tabs tabs={TABS} value={tab} onChange={setTab} />
+      <div className="settings">
+        <nav className="settings__nav" data-tour="config-tabs" aria-label="Secciones de configuración">
+          {TABS.map(({ key, label, desc, icon: Icon }) => (
+            <button key={key} className={`settings__item ${tab === key ? 'is-on' : ''}`} onClick={() => setTab(key)} aria-current={tab === key ? 'page' : undefined}>
+              <span className="settings__icon"><Icon size={18} /></span>
+              <span><strong>{label}</strong><small>{desc}</small></span>
+            </button>
+          ))}
+        </nav>
+        <div className="settings__body">
       {!config ? (
         <Loader />
       ) : tab === 'negocio' ? (
@@ -41,11 +49,11 @@ export default function Settings() {
         <PaymentsTab />
       ) : tab === 'pedido' ? (
         <CheckoutTab />
-      ) : tab === 'enlace' ? (
-        <LinkTab />
       ) : (
-        <StorageTab />
+        <LinkTab />
       )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -70,7 +78,7 @@ function BusinessTab() {
         <div className="form-grid form-grid--logo">
           <div className="field">
             <span>Logo</span>
-            <ImagePicker tenantId={tenant.id} folder="brand" value={d.logo} round={d.logo_shape === 'round'} label="Subir logo"
+            <ImagePicker tenantId={tenant.id} folder="brand" value={d.logo} round={d.logo_shape === 'round'} label="Subir logo" crop={{ fit: true, title: 'Ajusta tu logo', subtitle: 'Aleja para que entre completo; lo que sobra queda transparente.' }}
               onChange={(img) => set({ logo: img?.url || null })} />
             <div className="row">
               <Switch checked={d.logo_shape === 'round'} onChange={(v) => set({ logo_shape: v ? 'round' : 'square' })} label="Logo redondo" />
@@ -179,7 +187,6 @@ function DeliveryTab() {
   const source = useMemo(() => ({ allow_delivery: config.checkout?.allow_delivery !== false, allow_pickup: config.checkout?.allow_pickup !== false }), [config.checkout])
   const [d, set, dirty, reset] = useDraft(source)
   const saver = useSaver(async () => {
-    if (!d.allow_delivery && !d.allow_pickup) throw new Error('Activa al menos una forma de entrega.')
     await saveConfig({ checkout: { ...(config.checkout || {}), ...d }, modules: { ...(config.modules || {}), delivery: d.allow_delivery } })
   })
 
@@ -215,9 +222,18 @@ function DeliveryTab() {
 
   return (
     <>
-      <Section title="Formas de entrega">
-        <Switch checked={d.allow_delivery} onChange={(v) => set({ allow_delivery: v })} label="Delivery a domicilio" />
-        <Switch checked={d.allow_pickup} onChange={(v) => set({ allow_pickup: v })} label="Recojo en tienda" />
+      <Section title="¿Cómo entregas tus pedidos?" hint="Elige las que uses. Si no marcas ninguna, tu catálogo funciona como vitrina: el cliente arma su pedido y te escribe, sin pedirle dirección ni forma de entrega.">
+        <div className="choice-cards">
+          <button type="button" className={`choice-card ${d.allow_delivery ? 'is-on' : ''}`} onClick={() => set({ allow_delivery: !d.allow_delivery })} aria-pressed={d.allow_delivery}>
+            <Truck size={20} /><strong>Delivery</strong><small>Llevas el pedido a domicilio</small>
+          </button>
+          <button type="button" className={`choice-card ${d.allow_pickup ? 'is-on' : ''}`} onClick={() => set({ allow_pickup: !d.allow_pickup })} aria-pressed={d.allow_pickup}>
+            <Store size={20} /><strong>Recojo en tienda</strong><small>El cliente pasa a recoger</small>
+          </button>
+        </div>
+        {!d.allow_delivery && !d.allow_pickup && (
+          <p className="note-box"><Info size={16} /> Modo vitrina: el pedido llega a tu WhatsApp solo con los productos y el nombre del cliente. La entrega la coordinan por chat.</p>
+        )}
       </Section>
       <SaveBar dirty={dirty} {...saver} onSave={saver.run} onReset={reset} />
 
@@ -291,8 +307,15 @@ function PaymentsTab() {
         {d.methods.length === 0 && <p className="muted">Sin métodos de pago. El pago se coordina por WhatsApp.</p>}
         {d.methods.map((m, i) => (
           <div key={i} className="pay-card">
-            <div className="pay-card__qr">
-              <ImagePicker tenantId={tenant.id} folder="payments" value={m.qr_url} size={900} label="QR (opcional)" onChange={(img) => upd(i, { qr_url: img?.url || null })} />
+            <div className="pay-card__media">
+              <div className="field">
+                <span>Logo</span>
+                <ImagePicker small tenantId={tenant.id} folder="payments" value={m.logo_url} size={256} label="Logo" crop={{ fit: true, title: `Logo de ${m.name || 'este método'}` }} onChange={(img) => upd(i, { logo_url: img?.url || null })} />
+              </div>
+              <div className="field">
+                <span>QR (opcional)</span>
+                <ImagePicker tenantId={tenant.id} folder="payments" value={m.qr_url} size={900} label="Subir QR" crop={{ fit: true, background: '#ffffff', guide: 'qr', title: 'Ajusta tu QR', subtitle: 'Encuadra solo el código, sin bordes ni textos de la captura.' }} onChange={(img) => upd(i, { qr_url: img?.url || null })} />
+              </div>
             </div>
             <div className="pay-card__fields">
               <div className="form-grid">
@@ -417,62 +440,3 @@ function LinkTab() {
   )
 }
 
-/* ─────────── Almacenamiento ─────────── */
-function StorageTab() {
-  const { tenant } = useAuth()
-  const [usage, setUsage] = useState(null)
-  const [orphans, setOrphans] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState('')
-
-  const load = async () => {
-    const [u, o] = await Promise.all([
-      supabase.rpc('storage_usage', { p_tenant: tenant.id }),
-      supabase.rpc('list_orphan_files', { p_tenant: tenant.id }),
-    ])
-    if (u.error || o.error) setMsg((u.error || o.error).message)
-    setUsage(u.data?.[0] || { files: 0, bytes: 0 })
-    setOrphans(o.data || [])
-  }
-  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const clean = async () => {
-    setBusy(true)
-    setMsg('')
-    try {
-      const n = await removeInBatches(orphans.map((f) => f.name))
-      setMsg(`Listo: se borraron ${n} ${n === 1 ? 'archivo' : 'archivos'}.`)
-      await load()
-    } catch (e) {
-      setMsg(e.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const orphanBytes = (orphans || []).reduce((s, f) => s + Number(f.bytes || 0), 0)
-
-  return (
-    <>
-      <Section title="Espacio usado" hint="Fotos de productos, logo, foto de Lu y QR de pagos. Las fotos se comprimen al subirlas para ocupar poco.">
-        {!usage ? <Loader /> : (
-          <div className="stats stats--2">
-            <div className="stat"><small>Archivos</small><strong>{usage.files}</strong></div>
-            <div className="stat"><small>Espacio</small><strong>{formatBytes(usage.bytes)}</strong></div>
-          </div>
-        )}
-      </Section>
-      <Section title="Archivos sin usar" hint="Imágenes que ya no aparecen en ningún producto ni en tu configuración: fotos reemplazadas o subidas que no se guardaron. Solo se cuentan las que tienen más de 24 horas.">
-        {!orphans ? <Loader /> : orphans.length === 0 ? (
-          <p className="muted">Todo limpio. No hay archivos sin usar.</p>
-        ) : (
-          <div className="row row--between">
-            <span><strong>{orphans.length}</strong> {orphans.length === 1 ? 'archivo' : 'archivos'} · {formatBytes(orphanBytes)}</span>
-            <button className="btn btn--primary" disabled={busy} onClick={clean}>{busy ? 'Limpiando…' : 'Liberar espacio'}</button>
-          </div>
-        )}
-        {msg && <p className={`alert ${msg.startsWith('Listo') ? 'alert--ok' : 'alert--error'}`}>{msg}</p>}
-      </Section>
-    </>
-  )
-}

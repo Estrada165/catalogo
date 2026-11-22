@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { formatPrice } from '../../lib/utils'
+import { waUrl } from '../../lib/platform'
 import Loader from '../../components/Loader'
 import { IconClose, IconSearch, IconChat, IconTrash } from '../../components/icons'
 
@@ -110,7 +111,7 @@ export default function Orders() {
       <p className="muted page__lead">Cada pedido enviado por WhatsApp desde tu catálogo queda aquí con su código. Los pendientes que no se muevan en 48 horas pasan solos a “No concretado”.</p>
 
       <div className="toolbar">
-        <div className="segmented segmented--scroll">
+        <div className="segmented segmented--scroll" data-tour="filtros-pedidos">
           {FILTERS.map((f) => (
             <button key={f.key} className={filter === f.key ? 'is-active' : ''} onClick={() => setFilter(f.key)}>
               {f.label} <em className="seg-count">{counts[f.key]}</em>
@@ -128,7 +129,7 @@ export default function Orders() {
       {!rows ? <Loader /> : visible.length === 0 ? (
         <div className="card empty"><p>{rows.length === 0 ? 'Aún no recibes pedidos. Comparte tu catálogo para empezar.' : 'No hay pedidos en esta vista.'}</p></div>
       ) : (
-        <ul className="order-list">
+        <ul className="order-list" data-tour="lista-pedidos">
           {visible.map((o) => {
             const st = STATUS[o.status]
             return (
@@ -163,7 +164,7 @@ function OrderDrawer({ order: o, methods, businessName, onClose, onUpdate, onDel
   const c = o.customer || {}
   const idx = FLOW.indexOf(o.status)
   const phone = String(c.phone || '').replace(/\D/g, '')
-  const wa = phone ? `https://wa.me/${phone.length === 9 ? '51' + phone : phone}?text=${encodeURIComponent(`Hola ${c.name || ''}, te escribimos de ${businessName} por tu pedido ${o.code}.`)}` : null
+  const wa = phone ? waUrl(phone, `👋 Hola ${c.name || ''}, te escribimos de *${businessName}* por tu pedido *${o.code}* 🧾`) : null
 
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && onClose()

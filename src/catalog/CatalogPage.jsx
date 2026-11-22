@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Search, X, Moon, Sun, ShoppingBag, MessageCircle, Plus, ChevronRight, Clock, MapPin, Truck, Store, Layers,
-  FileText, Check, Instagram, Facebook, Music2, Star, Eye,
+  Search, X, Moon, Sun, ShoppingBag, MessageCircle, Plus, ChevronRight, Clock, MapPin, Truck, Store,
+  FileText, Check, Instagram, Facebook, Music2, Star, Eye, Wallet, Bot,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getSessionId } from '../lib/utils'
-import { fetchCatalog } from './lib/data'
+import { fetchCatalog, normalizeCatalog } from './lib/data'
 import { cartReducer, summarize, waLink } from './lib/cart'
 import { money, store } from './lib/format'
 import { applyPalette } from './lib/color'
@@ -14,7 +14,7 @@ import { applyFonts } from './lib/fonts'
 import { switchTheme, flyPlane, bump, haptic } from './lib/motion'
 import { openStatus, hoursRows } from './lib/hours'
 import { norm } from './lib/bot'
-import CategoryFilter from './components/CategoryFilter'
+import CategoryNav from './components/CategoryNav'
 import ProductCard, { priceInfo } from './components/ProductCard'
 import ProductSheet from './components/ProductSheet'
 import CartSheet from './components/CartSheet'
@@ -48,17 +48,34 @@ export default function CatalogPage() {
     return () => { alive = false }
   }, [slug, navigate])
 
+  // Vista previa del panel: recibe los cambios sin guardar por postMessage
+  const embedded = useMemo(() => new URLSearchParams(location.search).has('preview') && window.parent !== window, [])
+  const [draft, setDraft] = useState(null)
+  useEffect(() => {
+    if (!embedded) return
+    const on = (e) => { if (e.origin === location.origin && e.data?.type === 'cat:preview') setDraft(e.data) }
+    addEventListener('message', on)
+    window.parent.postMessage({ type: 'cat:preview-ready' }, location.origin)
+    return () => removeEventListener('message', on)
+  }, [embedded, cat?.state])
+  const shown = useMemo(() => {
+    if (!draft || cat?.state !== 'ok') return cat
+    const config = { ...(cat.raw.config || {}), theme: draft.theme, sections: draft.sections, modules: draft.modules }
+    return { ...cat, ...normalizeCatalog({ ...cat.raw, config }) }
+  }, [cat, draft])
+
   if (cat === undefined) return <LoadingScreen />
   if (cat === null) return <StateScreen title="No encontramos este catálogo" text="Revisa el enlace o pide uno nuevo a quien te lo compartió." />
   if (cat.state === 'error') return <StateScreen title="No pudimos cargar el catálogo" text="Revisa tu conexión e inténtalo de nuevo." retry />
-  return <Catalog cat={cat} slug={slug} />
+  return <Catalog cat={shown} slug={slug} embedded={embedded} forcedMode={draft?.mode} />
 }
 
-function Catalog({ cat, slug }) {
+function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const s = cat.settings
   const sym = s.currency_symbol
-  const preview = cat.preview
+  const preview = cat.preview || embedded
   const [catId, setCatId] = useState('all')
+  const [spy, setSpy] = useState('all')
   const [q, setQ] = useState('')
   const [detail, setDetail] = useState(null)
   const [cartOpen, setCartOpen] = useState(false)
@@ -90,11 +107,12 @@ function Catalog({ cat, slug }) {
       ic.href = s.logo_url
     }
   }, [s])
+  useEffect(() => { if (forcedMode === 'light' || forcedMode === 'dark') setTheme(forcedMode) }, [forcedMode])
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0d0e11' : '#f4f5f7')
   }, [theme])
-  useEffect(() => { store.set(`cat-cart:${slug}`, lines) }, [lines, slug])
+  useEffect(() => { if (!embedded) store.set(`cat-cart:${slug}`, lines) }, [lines, slug, embedded])
   useEffect(() => { dispatch({ type: 'sync', variantById: cat.variantById }) }, [cat])
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 120)
@@ -113,18 +131,41 @@ function Catalog({ cat, slug }) {
     toast.t = setTimeout(() => setToastMsg(null), 1900)
   }, [])
 
-  // Búsqueda y filtro
+  // Búsqueda
   const words = norm(q).split(' ').filter(Boolean)
   const matches = (p) => {
     if (!words.length) return true
     const hay = norm([p.name, ...(p.tags || []), cat.catById[p.category_id]?.name, ...Object.values(p.attributes || {}), ...p.variants.map((v) => v.label)].join(' '))
     return words.every((w) => hay.includes(w))
   }
+  const showCats = cat.sections.on('categories') && cat.categories.length > 1
+  const grouped = showCats && !words.length && catId === 'all'
+  const navCats = cat.categories.map((c) => ({ ...c, count: cat.products.filter((p) => p.category_id === c.id).length }))
+  const groups = useMemo(() => {
+    const g = cat.categories.map((c) => ({ id: c.id, name: c.name, items: cat.products.filter((p) => p.category_id === c.id) })).filter((x) => x.items.length)
+    const rest = cat.products.filter((p) => !p.category_id)
+    if (rest.length) g.push({ id: 'otros', name: 'Más productos', items: rest })
+    return g
+  }, [cat])
   const visible = cat.products.filter((p) => (catId === 'all' || p.category_id === catId) && matches(p))
-  const countFor = (cid) => cat.products.filter((p) => cid === 'all' || p.category_id === cid).length
   const summary = useMemo(() => summarize(lines, cat), [lines, cat])
   const qtyOf = (p) => (p.variants.length === 1 ? lines.find((l) => l.variantId === p.variants[0].id)?.qty || 0 : lines.filter((l) => p.variants.some((v) => v.id === l.variantId)).length)
   const inCart = (variantId) => lines.find((l) => l.variantId === variantId)?.qty || 0
+
+  // La barra de categorías sigue al scroll cuando están agrupadas
+  useEffect(() => {
+    if (!grouped) return
+    const els = [...document.querySelectorAll('[data-cat-section]')]
+    if (!els.length) return
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+      if (vis[0]) setSpy(vis[0].target.dataset.catSection)
+    }, { rootMargin: '-35% 0px -55% 0px' })
+    els.forEach((el) => io.observe(el))
+    const top = () => { if (scrollY < (document.getElementById('catalogo')?.offsetTop || 400) - 120) setSpy('all') }
+    addEventListener('scroll', top, { passive: true })
+    return () => { io.disconnect(); removeEventListener('scroll', top) }
+  }, [grouped, groups.length])
 
   const cartTarget = () => (cartBarBtn.current?.offsetParent ? cartBarBtn.current : cartBtn.current)
   const land = () => { bump(cartTarget()); haptic() }
@@ -148,33 +189,47 @@ function Catalog({ cat, slug }) {
   const goTo = (sel) => {
     const el = document.querySelector(sel)
     if (!el) return
-    const off = (document.querySelector('.top')?.offsetHeight || 60) + 8
+    const off = (document.querySelector('.top')?.offsetHeight || 60) + (document.querySelector('.ctrl')?.offsetHeight || 0) + 6
     scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - off), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  }
+  const pickCat = (id) => {
+    haptic(8)
+    if (words.length) setQ('')
+    if (grouped || (id !== 'all' && catId === 'all' && showCats)) {
+      setCatId('all')
+      setSpy(id)
+      setTimeout(() => goTo(id === 'all' ? '#catalogo-grid' : `[data-cat-section="${id}"]`), 30)
+    } else setCatId(id)
   }
 
   const status = openStatus(s.hours)
   const hours = hoursRows(s.hours)
   const deliveryOn = cat.modules.delivery !== false && cat.checkout?.allow_delivery !== false
   const pickupOn = cat.checkout?.allow_pickup !== false
-  const featured = cat.sections.on('featured') ? cat.products.filter((p) => p.featured && !p.soldOut).slice(0, 8) : []
+  const featured = cat.sections.on('featured') ? cat.products.filter((p) => p.featured && !p.soldOut).slice(0, 10) : []
   const art = cat.products.filter((p) => p.images?.length).slice(0, 9)
-  const showCats = cat.sections.on('categories') && cat.categories.length > 1
   const showFaq = cat.sections.on('faq') && cat.faqs.length > 0
   const policy = cat.sections.on('policies') ? cat.sections.props('policies') : null
   const policyItems = policy ? String(policy.text || '').split('\n').map((x) => x.trim()).filter(Boolean) : []
   const botReady = cat.bot.enabled
   const askHelp = () => {
     if (botReady) window.dispatchEvent(new CustomEvent('cat:open-bot'))
-    else if (s.whatsapp) window.open(waLink(s.whatsapp, `Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`), '_blank', 'noopener')
+    else if (s.whatsapp) window.open(waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`), '_blank', 'noopener')
   }
   const social = Object.entries(s.social || {}).filter(([, v]) => v)
   const SOCIAL_ICON = { instagram: Instagram, facebook: Facebook, tiktok: Music2 }
   const year = new Date().getFullYear()
-  const currentCat = catId !== 'all' ? cat.catById[catId] : null
+  const minZone = cat.zones.length ? Math.min(...cat.zones.map((z) => Number(z.cost) || 0)) : null
+  const catName = (p) => cat.catById[p.category_id]?.name
+
+  const card = (p, i, wide = false) => (
+    <ProductCard key={p.id} p={p} index={i} qty={qtyOf(p)} sym={sym} wide={wide} category={wide || !grouped ? catName(p) : null}
+      onOpen={openDetail} onAdd={(v, el) => add({ ...v, product: p }, el)} onDec={(v) => dispatch({ type: 'dec', variant: v })} />
+  )
 
   return (
     <>
-      {preview && (
+      {cat.preview && !embedded && (
         <div className="preview-bar"><Eye size={15} /> Vista previa: este catálogo aún no es visible al público.</div>
       )}
       <header className={`top${scrolled ? ' is-scrolled' : ''}`}>
@@ -195,50 +250,48 @@ function Catalog({ cat, slug }) {
       </header>
 
       <main id="top">
-        <section className="hero wrap">
+        <section className="hero hero2 wrap">
           <div className="hero__main">
-            <p className="hero__place">
-              <span className={`hero__live${status && !status.open ? ' is-closed' : ''}`} aria-hidden="true" />
-              {status ? status.label : 'Catálogo en línea'}
-            </p>
+            <div className="hero2__id">
+              {s.logo_url ? (
+                <img className={`hero2__logo${s.logo_shape === 'round' ? ' is-round' : ''}`} src={s.logo_url} alt={s.business_name} />
+              ) : (
+                <span className="hero2__logo hero2__logo--initial">{s.business_name.slice(0, 1)}</span>
+              )}
+              {status && (
+                <p className={`hero__place${status.open ? '' : ' is-closed'}`}>
+                  <span className={`hero__live${status.open ? '' : ' is-closed'}`} aria-hidden="true" />
+                  {status.label}
+                </p>
+              )}
+            </div>
             <h1 className="hero__title"><span>{s.business_name}</span></h1>
             {(s.tagline || s.description) && <p className="hero__tag">{s.tagline || s.description}</p>}
             <div className="hero__row">
               <div className="search" role="search">
                 <Search size={19} />
                 <label className="sr-only" htmlFor="q">Buscar producto</label>
-                <input id="q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="¿Qué estás buscando?" autoComplete="off" enterKeyHint="search"
+                <input id="q" type="search" value={q} onChange={(e) => { setQ(e.target.value); setCatId('all') }} placeholder={`Buscar en ${s.business_name}`} autoComplete="off" enterKeyHint="search"
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); goTo('#catalogo-grid') } }} />
                 {q && <button className="search__clear" onClick={() => setQ('')} aria-label="Borrar búsqueda"><X size={18} /></button>}
               </div>
             </div>
-            <ul className="meta">
-              {deliveryOn && <li><Truck size={15} /><span>{cat.zones.length ? <>Delivery desde <b>{money(Math.min(...cat.zones.map((z) => Number(z.cost) || 0)), sym)}</b></> : <b>Delivery disponible</b>}</span></li>}
-              {pickupOn && <li><Store size={15} /><span>Recojo en tienda</span></li>}
-              {s.address && (
-                <li>{s.maps_url ? <a className="meta__link" href={s.maps_url} target="_blank" rel="noopener noreferrer"><MapPin size={15} /> {s.address}</a> : <><MapPin size={15} /><span>{s.address}</span></>}</li>
+            <ul className="info-chips">
+              {deliveryOn && <li><Truck size={15} />{minZone === null ? 'Delivery' : minZone > 0 ? <>Delivery desde <b>{money(minZone, sym)}</b></> : <b>Delivery gratis</b>}</li>}
+              {pickupOn && <li><Store size={15} />Recojo en tienda</li>}
+              {s.address && (s.maps_url
+                ? <li><a href={s.maps_url} target="_blank" rel="noopener noreferrer"><MapPin size={15} />{s.address}</a></li>
+                : <li><MapPin size={15} />{s.address}</li>)}
+              {hours[0] && cat.sections.on('hours') && <li><Clock size={15} />{hours.map((h) => `${h.label} ${h.time}`).join(' · ')}</li>}
+              {cat.payment_methods.length > 0 && (
+                <li className="info-chips__pay"><Wallet size={15} />
+                  {cat.payment_methods.map((m, i) => m.logo_url ? <img key={i} src={m.logo_url} alt={m.name} title={m.name} /> : <span key={i}>{m.name}</span>)}
+                </li>
               )}
               {s.whatsapp && (
-                <li><a className="meta__link is-wa" href={waLink(s.whatsapp, `Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={15} /> Escríbenos</a></li>
+                <li><a className="is-wa" href={waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={15} />Escríbenos</a></li>
               )}
             </ul>
-            {featured.length > 2 && (
-              <div className="picks">
-                <span className="picks__lbl"><Star size={13} /> Destacados</span>
-                <div className="picks__row">
-                  {featured.map((p) => {
-                    const info = priceInfo(p)
-                    return (
-                      <button key={p.id} className="pick" onClick={() => openDetail(p)} aria-label={`Ver ${p.name}`}>
-                        {p.images?.[0] ? <img src={p.images[0].thumb || p.images[0].full} alt="" width="28" height="28" /> : <span className="pick__ph">{p.name.slice(0, 1)}</span>}
-                        <span>{p.name.length > 22 ? `${p.name.slice(0, 21)}…` : p.name}</span>
-                        {info.price !== null && <b className="tnum">{money(info.price, sym)}</b>}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
           </div>
           {art.length >= 3 && (
             <div className="hero__art" aria-hidden="true">
@@ -247,35 +300,57 @@ function Catalog({ cat, slug }) {
           )}
         </section>
 
+        {featured.length > 0 && !words.length && (
+          <section className="section wrap feat" aria-labelledby="feat-title">
+            <div className="section__head">
+              <h2 className="section__title" id="feat-title"><Star size={20} className="section__icon" /> Destacados</h2>
+            </div>
+            <div className="feat__row">{featured.map((p, i) => card(p, i, true))}</div>
+          </section>
+        )}
+
         {showCats && (
           <div className="ctrl" id="catalogo">
             <div className="wrap ctrl__in">
-              <div className="filters">
-                <CategoryFilter cats={cat.categories} value={catId} countFor={countFor} onChange={(id) => { setCatId(id); haptic(8) }} />
-              </div>
+              <CategoryNav cats={navCats} total={cat.products.length} active={grouped ? spy : catId} onPick={pickCat} />
             </div>
           </div>
         )}
 
-        <section className="section wrap" id="catalogo-grid" aria-labelledby="grid-title">
-          <div className="section__head">
-            <h2 className="section__title" id="grid-title">{words.length ? 'Resultados' : currentCat ? currentCat.name : 'Catálogo'}</h2>
-            <span className="count-pill tnum"><Layers size={15} /><b>{visible.length}</b> {visible.length === 1 ? 'producto' : 'productos'}</span>
-          </div>
-          {visible.length ? (
-            <div className="grid grid--img">
-              {visible.map((p, i) => (
-                <ProductCard key={p.id} p={p} index={i} qty={qtyOf(p)} sym={sym} onOpen={openDetail}
-                  onAdd={(v, el) => add({ ...v, product: p }, el)} onDec={(v) => dispatch({ type: 'dec', variant: v })} />
-              ))}
+        <section className="section wrap" id="catalogo-grid" aria-label="Productos">
+          {words.length > 0 && (
+            <div className="section__head">
+              <h2 className="section__title">Resultados</h2>
+              <span className="count-pill tnum"><b>{visible.length}</b> {visible.length === 1 ? 'producto' : 'productos'}</span>
             </div>
+          )}
+          {grouped ? (
+            groups.map((g, gi) => (
+              <div key={g.id} className="cat-block" data-cat-section={g.id}>
+                <div className="section__head">
+                  <h2 className="section__title">{g.name}</h2>
+                  <span className="count-pill tnum"><b>{g.items.length}</b></span>
+                </div>
+                <div className="grid grid--pc">{g.items.map((p, i) => card(p, gi * 4 + i))}</div>
+              </div>
+            ))
+          ) : visible.length ? (
+            <>
+              {!words.length && (
+                <div className="section__head">
+                  <h2 className="section__title">{catId !== 'all' ? cat.catById[catId]?.name : 'Productos'}</h2>
+                  <span className="count-pill tnum"><b>{visible.length}</b></span>
+                </div>
+              )}
+              <div className="grid grid--pc">{visible.map((p, i) => card(p, i))}</div>
+            </>
           ) : (
             <div className="empty">
               <b>{words.length ? `Nada con “${q.trim()}”` : 'Aún no hay productos aquí'}</b>
-              {words.length && catId !== 'all' ? (
-                <>Prueba en <button className="link-btn" onClick={() => setCatId('all')}>todas las categorías</button>.</>
-              ) : words.length && s.whatsapp ? (
-                <>¿No lo ves? <a className="link-btn" href={waLink(s.whatsapp, `Hola, ¿tienen ${q.trim()}?`)} target="_blank" rel="noopener noreferrer">Pregúntanos por WhatsApp</a>.</>
+              {words.length > 0 && botReady ? (
+                <>Pregúntale a <button className="link-btn" onClick={askHelp}>{cat.bot.name}</button> o escríbenos.</>
+              ) : words.length > 0 && s.whatsapp ? (
+                <>¿No lo ves? <a className="link-btn" href={waLink(s.whatsapp, `👋 Hola, ¿tienen ${q.trim()}?`)} target="_blank" rel="noopener noreferrer">Pregúntanos por WhatsApp</a>.</>
               ) : null}
             </div>
           )}
@@ -298,48 +373,30 @@ function Catalog({ cat, slug }) {
         )}
       </main>
 
-      <footer className="foot">
+      <footer className="foot foot2">
         <div className="wrap">
           <div className="foot__cta">
             <div>
               <h2>¿Tienes alguna duda?</h2>
-              <p>{botReady ? `${cat.bot.name} te responde al instante, o escríbenos por WhatsApp.` : 'Escríbenos y te ayudamos con tu pedido.'}</p>
+              <p>{botReady ? `${cat.bot.name} te responde al instante, o escríbenos directo.` : 'Escríbenos y te ayudamos con tu pedido.'}</p>
             </div>
             <div className="foot__cta-btns">
-              {botReady && <button className="key key--lg" onClick={askHelp}>Preguntarle a {cat.bot.name}</button>}
-              {s.whatsapp && <a className="key key--wa key--lg" href={waLink(s.whatsapp, `Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /> Escribir por WhatsApp</a>}
+              {botReady && <button className="key key--lg" onClick={askHelp}><Bot size={18} /> Preguntarle a {cat.bot.name}</button>}
+              {s.whatsapp && <a className="key key--wa key--lg" href={waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /> WhatsApp</a>}
             </div>
           </div>
-          <div className="foot__grid">
-            <div className="foot__brand">
-              <div className="foot__id">{s.logo_url && <img src={s.logo_url} alt="" width="40" height="40" className={s.logo_shape === 'round' ? 'is-round' : ''} />}<b>{s.business_name}</b></div>
-              {s.description && <p>{s.description}</p>}
-              {social.length > 0 && (
-                <div className="foot__social">
-                  {social.map(([k, url]) => {
-                    const Ic = SOCIAL_ICON[k] || ChevronRight
-                    return <a key={k} className="key key--icon key--sm" href={url} target="_blank" rel="noopener noreferrer" aria-label={k}><Ic size={17} /></a>
-                  })}
-                </div>
-              )}
-            </div>
-            {hours.length > 0 && cat.sections.on('hours') && (
-              <div className="foot__col">
-                <h3>Horario</h3>
-                {hours.map((h, i) => <span key={i}><Clock size={15} />{h.label}: {h.time}</span>)}
-              </div>
-            )}
-            <div className="foot__col">
-              <h3>Atención</h3>
-              {s.whatsapp_display && <span><MessageCircle size={15} />{s.whatsapp_display}</span>}
-              {s.address && cat.sections.on('location') !== false && <span><MapPin size={15} />{s.address}</span>}
-              {cat.payment_methods.length > 0 && (
-                <div className="foot__pays">{cat.payment_methods.map((m, i) => m.logo_url ? <img key={i} src={m.logo_url} alt={m.name} title={m.name} width="28" height="28" /> : <em key={i}>{m.name}</em>)}</div>
-              )}
-            </div>
-          </div>
-          <div className="foot__bottom">
-            <span>© {year} {s.business_name}</span>
+          <div className="foot2__bottom">
+            <span className="foot2__id">
+              {s.logo_url && <img src={s.logo_url} alt="" className={s.logo_shape === 'round' ? 'is-round' : ''} />}
+              © {year} {s.business_name}
+            </span>
+            <span className="foot2__links">
+              {policyItems.length > 0 && <button onClick={() => setPolicyOpen(true)}>{policy.title || 'Políticas'}</button>}
+              {social.map(([k, url]) => {
+                const Ic = SOCIAL_ICON[k] || ChevronRight
+                return <a key={k} className="key key--icon key--sm" href={url} target="_blank" rel="noopener noreferrer" aria-label={k}><Ic size={16} /></a>
+              })}
+            </span>
           </div>
         </div>
         <div className="bar-space" />

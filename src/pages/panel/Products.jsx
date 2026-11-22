@@ -104,13 +104,13 @@ export default function Products() {
           {products && <span className="muted">{products.length}</span>}
         </div>
         {tab === 'productos' && (
-          <button className="btn btn--primary" onClick={() => setEditing('new')}>
+          <button className="btn btn--primary" data-tour="nuevo-producto" onClick={() => setEditing('new')}>
             <IconPlus /> Nuevo producto
           </button>
         )}
       </header>
 
-      <div className="segmented">
+      <div className="segmented" data-tour="tabs-productos">
         <button className={tab === 'productos' ? 'is-active' : ''} onClick={() => setTab('productos')}>Productos</button>
         <button className={tab === 'categorias' ? 'is-active' : ''} onClick={() => setTab('categorias')}>Categorías</button>
       </div>
@@ -143,7 +143,7 @@ export default function Products() {
           ) : visible.length === 0 ? (
             <div className="card empty"><p>No hay productos que coincidan con la búsqueda.</p></div>
           ) : (
-            <ul className="product-list">
+            <ul className="product-list" data-tour="lista-productos">
               {visible.map((p) => {
                 const variants = p.product_variants || []
                 const stock = modules.stock ? stockLabel(variants) : null

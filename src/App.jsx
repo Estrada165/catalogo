@@ -13,6 +13,8 @@ const PanelHome = entry('PanelHome')
 const Products = entry('Products')
 const AdminTenants = entry('AdminTenants')
 const AdminRubros = entry('AdminRubros')
+const AdminStorage = entry('AdminStorage')
+const AdminSettings = entry('AdminSettings')
 const Settings = entry('Settings')
 const Appearance = entry('Appearance')
 const Orders = entry('Orders')
@@ -20,6 +22,7 @@ const Bot = entry('Bot')
 const QrPage = entry('QrPage')
 const Analytics = entry('Analytics')
 const CatalogPage = lazy(() => import('./catalog/CatalogPage'))
+const Recover = lazy(() => import('./pages/auth/Recover'))
 
 function Blank() {
   return <div style={{ minHeight: '100vh' }} />
@@ -32,6 +35,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/recuperar" element={<Recover />} />
 
         <Route path="/panel/bienvenida" element={<OnboardingPage />} />
         <Route path="/panel" element={<PanelPage />}>
@@ -48,6 +52,8 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<AdminTenants />} />
           <Route path="rubros" element={<AdminRubros />} />
+          <Route path="almacenamiento" element={<AdminStorage />} />
+          <Route path="ajustes" element={<AdminSettings />} />
         </Route>
 
         <Route path="/q/:code" element={<QrRedirect />} />

@@ -1,100 +1,93 @@
 import '../../styles/shell.js'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, APP_NAME } from '../../lib/supabase'
-import ThemeToggle from '../../components/ThemeToggle'
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Check } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import AuthLayout from './AuthLayout'
 
 export default function Register() {
-  const [form, setForm] = useState({ full_name: '', phone: '', email: '', password: '' })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const rules = [
+    { ok: password.length >= 8, text: 'Mínimo 8 caracteres' },
+    { ok: /\d/.test(password), text: 'Al menos un número' },
+  ]
 
   const submit = async (e) => {
     e.preventDefault()
     setError('')
-    if (form.password.length < 8) return setError('La contraseña debe tener al menos 8 caracteres.')
-    if (!/^9\d{8}$/.test(form.phone.replace(/\s/g, ''))) return setError('Ingresa un celular peruano válido (9 dígitos).')
-
+    if (rules.some((r) => !r.ok)) return setError('La contraseña aún no cumple los requisitos.')
     setBusy(true)
     const { data, error: err } = await supabase.auth.signUp({
-      email: form.email.trim(),
-      password: form.password,
-      options: {
-        data: { full_name: form.full_name.trim(), phone: form.phone.replace(/\s/g, '') },
-        emailRedirectTo: `${window.location.origin}/panel/bienvenida`,
-      },
+      email: email.trim(),
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/panel` },
     })
     setBusy(false)
-
     if (err) {
-      setError(err.message.includes('already registered') ? 'Ese correo ya tiene una cuenta.' : err.message)
+      setError(/already registered|already exists/i.test(err.message) ? 'Ese correo ya tiene una cuenta. Ingresa con él.' : err.message)
       return
     }
+    // Con la confirmación de correo apagada entra directo: el panel abre el registro del negocio
     if (!data.session) setSent(true)
   }
 
   if (sent) {
     return (
-      <div className="auth">
-        <div className="auth__top">
-          <span className="brand">{APP_NAME}</span>
-          <ThemeToggle />
+      <AuthLayout tabs={false}>
+        <div className="auth2__body">
+          <span className="auth2__badge"><Mail size={22} /></span>
+          <h2 className="auth2__h">Revisa tu correo</h2>
+          <p className="muted">Te enviamos un enlace a <strong>{email}</strong> para confirmar tu cuenta. Después podrás registrar tu negocio.</p>
+          <Link className="btn btn--block" to="/login">Volver a ingresar</Link>
         </div>
-        <div className="card card--narrow auth__card">
-          <h1 className="display">Revisa tu correo</h1>
-          <p className="muted">
-            Te enviamos un enlace a <strong>{form.email}</strong> para confirmar tu cuenta. Después podrás crear tu catálogo.
-          </p>
-          <Link className="btn btn--block" to="/login">Ir a iniciar sesión</Link>
-        </div>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="auth">
-      <div className="auth__top">
-        <span className="brand">{APP_NAME}</span>
-        <ThemeToggle />
-      </div>
-
-      <form className="card card--narrow auth__card" onSubmit={submit}>
-        <h1 className="display">Crea tu cuenta</h1>
-        <p className="muted">En el siguiente paso eliges tu rubro y el enlace de tu catálogo.</p>
-
-        <label className="field">
-          <span>Nombre completo</span>
-          <input required autoComplete="name" value={form.full_name} onChange={set('full_name')} />
-        </label>
-
-        <label className="field">
-          <span>Celular (WhatsApp)</span>
-          <input required inputMode="numeric" autoComplete="tel" placeholder="9XXXXXXXX" value={form.phone} onChange={set('phone')} />
-        </label>
+    <AuthLayout>
+      <form className="auth2__body" onSubmit={submit}>
+        <div>
+          <h2 className="auth2__h">Crea tu cuenta</h2>
+          <p className="muted">Solo tu correo y una contraseña. Los datos de tu negocio los completas en el siguiente paso.</p>
+        </div>
 
         <label className="field">
           <span>Correo</span>
-          <input type="email" required autoComplete="email" value={form.email} onChange={set('email')} />
+          <div className="input-icon">
+            <Mail size={17} />
+            <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@gmail.com" />
+          </div>
         </label>
 
         <label className="field">
           <span>Contraseña</span>
-          <input type="password" required autoComplete="new-password" minLength={8} value={form.password} onChange={set('password')} />
+          <div className="input-icon">
+            <Lock size={17} />
+            <input type={show ? 'text' : 'password'} required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button type="button" className="input-icon__btn" onClick={() => setShow((s) => !s)} aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+              {show ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
+          <ul className="pw-rules">
+            {rules.map((r) => <li key={r.text} className={r.ok ? 'is-ok' : ''}><Check size={13} /> {r.text}</li>)}
+          </ul>
         </label>
 
         {error && <p className="alert alert--error">{error}</p>}
 
-        <button className="btn btn--primary btn--block" disabled={busy}>
-          {busy ? 'Creando cuenta…' : 'Continuar'}
+        <button className="btn btn--primary btn--block btn--lg" disabled={busy}>
+          {busy ? 'Creando cuenta…' : <>Continuar <ArrowRight size={18} /></>}
         </button>
 
-        <p className="auth__alt">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-        </p>
+        <p className="auth2__alt">¿Ya tienes cuenta? <Link to="/login">Ingresa</Link></p>
       </form>
-    </div>
+    </AuthLayout>
   )
 }

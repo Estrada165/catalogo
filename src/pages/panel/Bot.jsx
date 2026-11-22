@@ -61,7 +61,7 @@ export default function Bot() {
         {inbox?.length > 0 && <span className="pill pill--warn">{inbox.length} sin respuesta</span>}
       </header>
       <p className="muted page__lead">Lu responde sola con tus productos, precios, stock, horario, delivery, pagos y dirección. Aquí agregas respuestas para lo demás.</p>
-      <Tabs tabs={TABS.map((t) => (t.key === 'bandeja' && inbox?.length ? { ...t, label: `${t.label} (${inbox.length})` } : t))} value={tab} onChange={setTab} />
+      <div data-tour="bot-tabs"><Tabs tabs={TABS.map((t) => (t.key === 'bandeja' && inbox?.length ? { ...t, label: `${t.label} (${inbox.length})` } : t))} value={tab} onChange={setTab} /></div>
       {error && <p className="alert alert--error">{error}</p>}
 
       {tab === 'perfil' ? <ProfileTab /> : !faqs ? <Loader /> : tab === 'preguntas' ? (
@@ -179,7 +179,7 @@ function ProfileTab() {
         <div className="form-grid form-grid--logo">
           <div className="field">
             <span>Foto (opcional)</span>
-            <ImagePicker tenantId={tenant.id} folder="bot" value={d.avatar} round size={256} label="Subir foto" onChange={(img) => set({ avatar: img?.url || null })} />
+            <ImagePicker tenantId={tenant.id} folder="bot" value={d.avatar} round size={320} label="Subir foto" crop={{ title: 'Foto de tu asistente', subtitle: 'Se verá en un círculo dentro del chat.' }} onChange={(img) => set({ avatar: img?.url || null })} />
           </div>
           <div className="stack">
             <Field label="Nombre"><input value={d.name} maxLength={24} onChange={(e) => set({ name: e.target.value })} /></Field>

@@ -2,6 +2,7 @@ import '../styles/shell.js'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Loader from './Loader'
+import AccountGate, { gateState } from './AccountGate'
 
 function ProfileMissing() {
   const { signOut, authError, refresh, user } = useAuth()
@@ -38,6 +39,8 @@ export function RequireOwner({ children, needTenant = true }) {
   if (isSuperadmin) return <Navigate to="/admin" replace />
   if (needTenant && !tenant) return <Navigate to="/panel/bienvenida" replace />
   if (!needTenant && tenant) return <Navigate to="/panel" replace />
+  const gate = needTenant && gateState(tenant)
+  if (gate) return <AccountGate state={gate} />
   return children
 }
 

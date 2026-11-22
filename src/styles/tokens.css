@@ -1,43 +1,76 @@
+/* ════════════════════════════════════════════
+   Panel, login y superadmin · base monocromática
+   Claro: papel cálido y tinta. Oscuro: negro profundo con relieve.
+   El color de cada negocio se usa solo en su catálogo.
+════════════════════════════════════════════ */
 :root {
-  --font-display: 'Clash Display', 'Satoshi', system-ui, sans-serif;
-  --font-body: 'Satoshi', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-body: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --accent: #ff6b35;
-  --accent-ink: #ffffff;
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
 
-  --radius-sm: 8px;
-  --radius: 14px;
-  --radius-lg: 22px;
-
-  --ease: cubic-bezier(.22, .9, .3, 1);
-  --sidebar-w: 248px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --ease-back: cubic-bezier(.34, 1.56, .64, 1);
+  --sidebar-w: 264px;
 }
 
 :root,
 [data-theme='light'] {
-  --bg: #f4f2ee;
-  --surface: #fbfaf8;
-  --surface-2: #ecebe6;
-  --line: #dcdad4;
-  --text: #121212;
-  --text-2: #5f5d58;
-  --key-shadow: #c9c6bf;
-  --ok: #1f8a4c;
-  --warn: #b7791f;
-  --error: #c2362b;
+  --bg: #f3f2ee;
+  --bg-glow: radial-gradient(1200px 600px at 100% -10%, #e9e6ff 0%, transparent 55%), radial-gradient(900px 500px at -10% 110%, #f6e9df 0%, transparent 55%);
+  --surface: #ffffff;
+  --surface-2: #f1f0ec;
+  --surface-3: #e9e7e1;
+  --line: #e4e2db;
+  --line-strong: #d3d0c7;
+  --text: #141416;
+  --text-2: #5e5d66;
+  --text-3: #8c8b93;
+  --key-shadow: #d6d3ca;
+
+  /* Acento del sistema: tinta. Los botones principales son negros con texto blanco */
+  --accent: #141416;
+  --accent-ink: #ffffff;
+  --accent-edge: #000000;
+  --accent-soft: #ecebe6;
+  --accent-line: #c9c6bd;
+  /* Toque de color para estados activos e indicadores */
+  --tint: #6d5df6;
+  --tint-soft: color-mix(in srgb, var(--tint) 12%, transparent);
+
+  --ok: #16a34a;
+  --warn: #b45309;
+  --error: #dc2626;
+  --shadow: 0 1px 2px rgba(20, 20, 22, .04), 0 12px 32px -18px rgba(20, 20, 22, .22);
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --bg: #0e0e0f;
-  --surface: #161618;
-  --surface-2: #1f1f22;
-  --line: #2b2b2f;
-  --text: #f2f1ee;
-  --text-2: #9a9893;
-  --key-shadow: #050506;
-  --ok: #3ccf7e;
-  --warn: #f0b44c;
-  --error: #ff6b5e;
+  --bg: #09090b;
+  --bg-glow: radial-gradient(1100px 560px at 100% -10%, rgba(124, 108, 255, .16) 0%, transparent 55%), radial-gradient(900px 500px at -10% 110%, rgba(255, 168, 120, .07) 0%, transparent 55%);
+  --surface: #131316;
+  --surface-2: #1a1a1e;
+  --surface-3: #232328;
+  --line: #26262c;
+  --line-strong: #34343b;
+  --text: #f4f3f0;
+  --text-2: #a6a5ad;
+  --text-3: #75747c;
+  --key-shadow: #000000;
+
+  --accent: #f4f3f0;
+  --accent-ink: #0b0b0d;
+  --accent-edge: #9d9ca3;
+  --accent-soft: #212126;
+  --accent-line: #3a3a42;
+  --tint: #8b7dff;
+  --tint-soft: color-mix(in srgb, var(--tint) 16%, transparent);
+
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --error: #f87171;
+  --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 18px 40px -22px rgba(0, 0, 0, .9);
   color-scheme: dark;
 }

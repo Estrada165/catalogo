@@ -123,7 +123,7 @@ export default function Analytics() {
     <div className="page">
       <header className="page__head page__head--split">
         <h1 className="display">Analítica</h1>
-        <div className="segmented">
+        <div className="segmented" data-tour="rango">
           {RANGES.map((r) => <button key={r.key} className={range === r.key ? 'is-active' : ''} onClick={() => setRange(r.key)}>{r.label}</button>)}
         </div>
       </header>

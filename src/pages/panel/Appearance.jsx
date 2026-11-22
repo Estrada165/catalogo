@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Sun, Moon, Smartphone, Monitor } from 'lucide-react'
 import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { FONTS } from '../../catalog/lib/fonts'
@@ -60,6 +61,9 @@ export default function Appearance() {
   const { tenant } = useAuth()
   const [tab, setTab] = useState('estilo')
   const [stamp, setStamp] = useState(0)
+  const [previewMode, setPreviewMode] = useState(null)
+  const [device, setDevice] = useState('phone')
+  const [frameReady, setFrameReady] = useState(false)
   const frame = useRef(null)
 
   const source = useMemo(() => {
@@ -75,8 +79,19 @@ export default function Appearance() {
   const saver = useSaver(async () => {
     if (!/^#[0-9a-fA-F]{6}$/.test(d.theme.accent || '')) throw new Error('El color debe tener formato #RRGGBB.')
     await saveConfig({ theme: d.theme, sections: d.sections.map((s, i) => ({ ...s, order: i })), modules: d.modules })
-    setStamp(Date.now())
   })
+
+  useEffect(() => { setFrameReady(false) }, [stamp, device])
+  // La vista previa recibe el borrador al instante (sin guardar)
+  useEffect(() => {
+    const on = (e) => { if (e.origin === location.origin && e.data?.type === 'cat:preview-ready') setFrameReady(true) }
+    addEventListener('message', on)
+    return () => removeEventListener('message', on)
+  }, [])
+  useEffect(() => {
+    if (!frameReady || !d) return
+    frame.current?.contentWindow?.postMessage({ type: 'cat:preview', theme: d.theme, sections: d.sections, modules: d.modules, mode: previewMode }, location.origin)
+  }, [d, previewMode, frameReady])
 
   if (!d) return <div className="page"><Loader /></div>
 
@@ -104,7 +119,7 @@ export default function Appearance() {
 
           {tab === 'estilo' && (
             <>
-              <Section title="Color principal" hint="Se usa en botones, precios y detalles. El catálogo ajusta el tono automáticamente para que siempre se lea bien.">
+              <Section tour="color" title="Color principal" hint="Se usa en botones, precios y detalles. El catálogo ajusta el tono automáticamente para que siempre se lea bien.">
                 <div className="swatches">
                   {ACCENTS.map((c) => (
                     <button key={c} className={`swatch ${d.theme.accent?.toUpperCase() === c ? 'is-on' : ''}`} style={{ '--c': c }} onClick={() => theme({ accent: c })} aria-label={c} />
@@ -116,7 +131,7 @@ export default function Appearance() {
                 </div>
               </Section>
 
-              <Section title="Estilo" hint="Define tipografías y forma de las tarjetas. Luego puedes ajustarlas abajo.">
+              <Section tour="estilos" title="Estilo" hint="Define tipografías y forma de las tarjetas. Luego puedes ajustarlas abajo.">
                 <div className="option-grid">
                   {STYLES.map((s) => (
                     <button key={s.key} className={`option-card ${d.theme.style === s.key ? 'is-on' : ''}`}
@@ -220,11 +235,24 @@ export default function Appearance() {
           <SaveBar dirty={dirty} {...saver} onSave={saver.run} onReset={reset} />
         </div>
 
-        <aside className="appearance__preview">
-          <div className="phone">
-            <iframe ref={frame} key={stamp} src={url} title="Vista previa del catálogo" />
+        <aside className="appearance__preview" data-tour="preview">
+          <div className="preview-tools">
+            <div className="segmented segmented--sm">
+              <button className={device === 'phone' ? 'is-active' : ''} onClick={() => setDevice('phone')} aria-label="Celular"><Smartphone size={15} /></button>
+              <button className={device === 'desktop' ? 'is-active' : ''} onClick={() => setDevice('desktop')} aria-label="Computadora"><Monitor size={15} /></button>
+            </div>
+            <div className="segmented segmented--sm">
+              <button className={previewMode !== 'dark' ? 'is-active' : ''} onClick={() => setPreviewMode('light')}><Sun size={15} /> Claro</button>
+              <button className={previewMode === 'dark' ? 'is-active' : ''} onClick={() => setPreviewMode('dark')}><Moon size={15} /> Oscuro</button>
+            </div>
           </div>
-          <small className="muted">{dirty ? 'Guarda para ver los cambios aquí.' : 'Vista previa en vivo'}</small>
+          <div className={device === 'phone' ? 'phone' : 'browser'}>
+            {device === 'desktop' && <div className="browser__bar"><i /><i /><i /><span>{location.host}{url}</span></div>}
+            <div className="frame-wrap">
+              <iframe ref={frame} key={stamp + device} src={`${url}?preview=1`} title="Vista previa del catálogo" />
+            </div>
+          </div>
+          <small className="muted">{dirty ? 'Así se verá cuando guardes.' : 'Vista previa en vivo'}</small>
         </aside>
       </div>
     </div>

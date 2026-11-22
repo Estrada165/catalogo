@@ -279,7 +279,7 @@ export default function QrPage() {
             </div>
           </Section>
 
-          <Section title="Formato">
+          <Section tour="qr-formato" title="Formato">
             <div className="option-grid">
               {FORMATS.map((f) => (
                 <button key={f.key} className={`option-card ${d.format === f.key ? 'is-on' : ''}`} onClick={() => set({ format: f.key })}>
@@ -322,7 +322,7 @@ export default function QrPage() {
             {previewUrl ? <img src={previewUrl} alt="Vista previa del QR" /> : <div className="qr-preview__ph"><IconQr width={40} height={40} /></div>}
           </div>
           <div className="row">
-            <button className="btn btn--primary" onClick={download} disabled={busy}>{busy ? 'Preparando…' : 'Descargar PNG'}</button>
+            <button className="btn btn--primary" data-tour="qr-descargar" onClick={download} disabled={busy}>{busy ? 'Preparando…' : 'Descargar PNG'}</button>
             <button className="btn" onClick={downloadSvg}>Solo QR en SVG</button>
           </div>
         </aside>

@@ -4,7 +4,7 @@ import { X, Send, Plus, ShoppingBag, MessageCircle, Sparkles, RotateCcw, Chevron
 import { supabase } from '../../lib/supabase'
 import { getSessionId } from '../../lib/utils'
 import { money, session } from '../lib/format'
-import { waLink } from '../lib/cart'
+import { waLink, clip } from '../lib/cart'
 import { answer, buildIndex, suggestions } from '../lib/bot'
 import { priceInfo } from './ProductCard'
 
@@ -44,7 +44,7 @@ export default function LuChat({ cat, slug, sym, onAdd, onOpen, onOpenCart, hidd
   if (!bot.enabled) return null
 
   const send = (t) => {
-    const q = (t ?? text).trim().slice(0, 300)
+    const q = clip((t ?? text).trim(), 300).replace(/…$/, '')
     if (!q || busy) return
     setMsgs((m) => [...m, { role: 'user', text: q }])
     setText('')
@@ -63,7 +63,7 @@ export default function LuChat({ cat, slug, sym, onAdd, onOpen, onOpenCart, hidd
 
   const waFor = (q) =>
     cat.settings.whatsapp
-      ? waLink(cat.settings.whatsapp, q ? `Hola, vengo del catálogo de ${cat.settings.business_name}. Quería consultar: "${q.slice(0, 200)}"` : `Hola, tengo una consulta sobre el catálogo de ${cat.settings.business_name}.`)
+      ? waLink(cat.settings.whatsapp, q ? `👋 Hola, vengo del catálogo de *${cat.settings.business_name}*. Quería consultar: “${clip(q, 200)}”` : `👋 Hola, tengo una consulta sobre el catálogo de *${cat.settings.business_name}*.`)
       : null
 
   const productCard = (id) => {
