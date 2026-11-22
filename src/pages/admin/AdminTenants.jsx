@@ -155,26 +155,26 @@ export default function AdminTenants() {
                 const busy = busyId === t.id
                 return (
                   <tr key={t.id}>
-                    <td data-label="Negocio">
+                    <td className="t-name" data-label="Negocio">
                       <strong>{t.name}</strong>
                       <a className="table__link" href={`/${t.slug}`} target="_blank" rel="noreferrer">
                         /{t.slug} <IconExternal width={13} height={13} />
                       </a>
                     </td>
-                    <td data-label="Dueño">
+                    <td className="t-owner" data-label="Dueño">
                       {t.profiles?.full_name || '—'}
                       {t.profiles?.phone && <small className="muted">{t.profiles.phone}</small>}
                     </td>
-                    <td data-label="Alquiler">
+                    <td className="t-rent" data-label="Alquiler">
                       {t.price != null ? <strong className="tnum">{money(t.price)}</strong> : <span className="muted">Sin precio</span>}
                       <small className="muted">cada {t.cycle_days || 30} días</small>
                     </td>
-                    <td data-label="Estado"><span className={`pill pill--${t.status === 'activo' ? 'ok' : t.status === 'pendiente' ? 'warn' : 'error'}`} style={{ textTransform: 'capitalize' }}>{t.status}</span></td>
-                    <td data-label="Vence">
+                    <td className="t-status" data-label="Estado"><span className={`pill pill--${t.status === 'activo' ? 'ok' : t.status === 'pendiente' ? 'warn' : 'error'}`} style={{ textTransform: 'capitalize' }}>{t.status}</span></td>
+                    <td className="t-exp" data-label="Vence">
                       {formatDate(t.expires_at)}
                       {left !== null && <small className={left <= 5 ? 'text-warn' : 'muted'}>{left > 0 ? `${left} ${left === 1 ? 'día' : 'días'}` : left === 0 ? 'vence hoy' : 'vencido'}</small>}
                     </td>
-                    <td>
+                    <td className="t-actions">
                       <div className="row row--end tenant-actions">
                         <button className="btn btn--sm btn--primary" disabled={busy} onClick={() => quickRenew(t)} title={t.price != null ? `Registra un pago de ${money(t.price)}` : ''}>
                           <CalendarClock size={15} /> {t.status === 'activo' ? `+${t.cycle_days || 30} días` : `Activar ${t.cycle_days || 30} días`}

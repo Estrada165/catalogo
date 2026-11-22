@@ -184,7 +184,7 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   }
   const visible = sortList(cat.products.filter((p) => inCat(p, catId) && matches(p) && facetOk(p) && priceOk(p)))
   const prices = cat.products.map(priceOf).filter((x) => x !== null)
-  const showTools = cat.products.length >= 4
+  const showTools = cat.products.length >= 2
   const clearFilters = () => { setPicked({}); setRange({ min: '', max: '' }); setSort('default') }
   const togglePick = (key, val) => setPicked((cur) => {
     const list = cur[key] || []

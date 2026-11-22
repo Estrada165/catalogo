@@ -463,14 +463,41 @@ h2.display { font-size: 1.3rem; }
 .te-history small { font-size: .8rem; }
 .form-block__title svg { vertical-align: -3px; margin-right: 4px; }
 @media (max-width: 720px) {
+  /* Cada negocio como tarjeta */
+  .table-wrap:has(.table--tenants) { background: none; border: 0; box-shadow: none; overflow: visible; }
   .table--tenants thead { display: none; }
-  .table--tenants, .table--tenants tbody, .table--tenants tr, .table--tenants td { display: block; width: 100%; }
-  .table--tenants tr { padding: 12px 14px; border-bottom: 1px solid var(--line); }
-  .table--tenants td { padding: 3px 0; border: 0; }
-  .table--tenants td[data-label] { display: grid; grid-template-columns: 82px 1fr; gap: 8px; align-items: baseline; }
-  .table--tenants td[data-label]::before { content: attr(data-label); font-size: .75rem; font-weight: 700; color: var(--text-2); }
-  .table--tenants td[data-label] > * { grid-column: 2; justify-self: start; }
-  .tenant-actions { justify-content: flex-start; flex-wrap: wrap; margin-top: 8px; }
+  .table--tenants, .table--tenants tbody { display: block; width: 100%; }
+  .table--tenants tbody { display: grid; gap: 14px; }
+  .table--tenants tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    grid-template-areas: "name status" "owner owner" "rent exp" "actions actions";
+    padding: 16px; border-radius: 20px; background: var(--surface);
+    border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line), 0 14px 30px -22px rgba(0,0,0,.45);
+  }
+  .table--tenants td { display: block; padding: 0; border: 0 !important; min-width: 0; }
+  .table--tenants td::before { content: none; }
+  .t-name { grid-area: name; }
+  .t-name strong { font-size: 1.05rem; display: block; }
+  .t-status { grid-area: status; justify-self: end; align-self: start; }
+  .t-owner { grid-area: owner; }
+  .t-rent { grid-area: rent; }
+  .t-exp { grid-area: exp; }
+  .t-actions { grid-area: actions; }
+  .t-owner, .t-rent, .t-exp {
+    padding: 10px 12px !important; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line) !important;
+  }
+  .t-owner::before, .t-rent::before, .t-exp::before {
+    content: attr(data-label) !important; display: block; margin-bottom: 3px;
+    font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2);
+  }
+  .t-owner { display: flex !important; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  .t-owner::before { flex-basis: 100%; }
+  .t-owner small { margin: 0 !important; }
+  .t-name { padding-bottom: 4px !important; }
+  .t-actions { padding-top: 12px !important; border-top: 1px dashed var(--line) !important; margin-top: 2px; }
+  .tenant-actions { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tenant-actions .btn { justify-content: center; width: 100%; }
+  .tenant-actions .btn:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 720px) {
   .stats--admin { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
