@@ -1,0 +1,473 @@
+import { useEffect, useRef, useState } from 'react'
+import { supabase } from '../../lib/supabase'
+import { removeImages, uploadProductImage } from '../../lib/images'
+import Switch from '../../components/Switch'
+import Loader from '../../components/Loader'
+import { IconClose, IconImage, IconPlus, IconTrash, IconArrowUp, IconArrowDown } from '../../components/icons'
+
+const UNITS = [
+  { value: 'und', label: 'Unidad' },
+  { value: 'kg', label: 'Kilo (kg)' },
+  { value: 'g', label: 'Gramo (g)' },
+  { value: 'l', label: 'Litro (l)' },
+  { value: 'ml', label: 'Mililitro (ml)' },
+  { value: 'm', label: 'Metro (m)' },
+  { value: 'caja', label: 'Caja' },
+  { value: 'paquete', label: 'Paquete' },
+  { value: 'docena', label: 'Docena' },
+]
+
+const MAX_IMAGES = 6
+
+function emptyVariant() {
+  return { key: Math.random().toString(36).slice(2), label: '', price: '', compare_price: '', stock: '', unit: 'und', min_qty: '1', step: '1', sku: '' }
+}
+
+function toForm(product) {
+  if (!product) {
+    return {
+      name: '', description: '', category_id: '', badge: '', featured: false, visible: true,
+      images: [], tags: [], attributes: [], variants: [{ ...emptyVariant(), label: 'Único' }],
+    }
+  }
+  const variants = [...(product.product_variants || [])]
+    .sort((a, b) => a.sort - b.sort)
+    .map((v) => ({
+      key: v.id,
+      id: v.id,
+      label: v.label || '',
+      price: v.price ?? '',
+      compare_price: v.compare_price ?? '',
+      stock: v.stock ?? '',
+      unit: v.unit || 'und',
+      min_qty: String(v.min_qty ?? 1),
+      step: String(v.step ?? 1),
+      sku: v.sku || '',
+    }))
+  return {
+    name: product.name || '',
+    description: product.description || '',
+    category_id: product.category_id || '',
+    badge: product.badge || '',
+    featured: !!product.featured,
+    visible: product.visible !== false,
+    images: product.images || [],
+    tags: product.tags || [],
+    attributes: Object.entries(product.attributes || {}).map(([k, v]) => ({ key: Math.random().toString(36).slice(2), name: k, value: String(v) })),
+    variants: variants.length ? variants : [{ ...emptyVariant(), label: 'Único' }],
+  }
+}
+
+const num = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
+
+export default function ProductEditor({ tenantId, product, categories, modules, nextSort, onClose, onSaved, onCategoryCreated }) {
+  const [form, setForm] = useState(() => toForm(product))
+  const [uploading, setUploading] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [newCat, setNewCat] = useState(null)
+  const uploadedThisSession = useRef([])
+  const removedImages = useRef([])
+  const fileInput = useRef(null)
+
+  const useStock = !!modules?.stock
+  const usePeso = !!modules?.peso
+
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && cancel()
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  const set = (patch) => setForm((f) => ({ ...f, ...patch }))
+
+  const cancel = async () => {
+    if (saving) return
+    if (uploadedThisSession.current.length) await removeImages(uploadedThisSession.current)
+    onClose()
+  }
+
+  const onFiles = async (files) => {
+    setError('')
+    const list = Array.from(files || []).slice(0, MAX_IMAGES - form.images.length)
+    if (!list.length) return
+    setUploading((n) => n + list.length)
+    for (const file of list) {
+      try {
+        const img = await uploadProductImage(tenantId, file)
+        uploadedThisSession.current.push(img)
+        setForm((f) => ({ ...f, images: [...f.images, img] }))
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setUploading((n) => n - 1)
+      }
+    }
+  }
+
+  const removeImage = (idx) => {
+    const img = form.images[idx]
+    const isNew = uploadedThisSession.current.includes(img)
+    if (isNew) {
+      uploadedThisSession.current = uploadedThisSession.current.filter((i) => i !== img)
+      removeImages([img])
+    } else {
+      removedImages.current.push(img)
+    }
+    set({ images: form.images.filter((_, i) => i !== idx) })
+  }
+
+  const moveImage = (idx, dir) => {
+    const arr = [...form.images]
+    const to = idx + dir
+    if (to < 0 || to >= arr.length) return
+    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
+    set({ images: arr })
+  }
+
+  const setVariant = (key, patch) => set({ variants: form.variants.map((v) => (v.key === key ? { ...v, ...patch } : v)) })
+  const addVariant = () => set({ variants: [...form.variants, emptyVariant()] })
+  const removeVariant = (key) => form.variants.length > 1 && set({ variants: form.variants.filter((v) => v.key !== key) })
+
+  const addTag = () => {
+    const parts = tagInput.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+    if (!parts.length) return
+    set({ tags: Array.from(new Set([...form.tags, ...parts])).slice(0, 30) })
+    setTagInput('')
+  }
+
+  const createCategory = async () => {
+    const name = (newCat || '').trim()
+    if (!name) return setNewCat(null)
+    const { data, error: err } = await supabase
+      .from('categories')
+      .insert({ tenant_id: tenantId, name, sort: categories.length })
+      .select()
+      .single()
+    if (err) return setError(err.message)
+    onCategoryCreated(data)
+    set({ category_id: data.id })
+    setNewCat(null)
+  }
+
+  const validate = () => {
+    if (!form.name.trim()) return 'El producto necesita un nombre.'
+    if (form.variants.length > 1 && form.variants.some((v) => !v.label.trim())) return 'Ponle nombre a cada variante (ej. 100 ml, Grande, 1 kg).'
+    for (const v of form.variants) {
+      if (v.price !== '' && (isNaN(Number(v.price)) || Number(v.price) < 0)) return 'Revisa los precios: deben ser números positivos.'
+      if (v.compare_price !== '' && v.price !== '' && Number(v.compare_price) <= Number(v.price)) return 'El precio anterior debe ser mayor al precio actual.'
+      if (useStock && v.stock !== '' && Number(v.stock) < 0) return 'El stock no puede ser negativo.'
+      if (usePeso && (Number(v.min_qty) <= 0 || Number(v.step) <= 0)) return 'La cantidad mínima y el incremento deben ser mayores a 0.'
+    }
+    return ''
+  }
+
+  const save = async () => {
+    const msg = validate()
+    if (msg) return setError(msg)
+    setError('')
+    setSaving(true)
+
+    try {
+      const attributes = {}
+      form.attributes.forEach((a) => {
+        if (a.name.trim() && a.value.trim()) attributes[a.name.trim()] = a.value.trim()
+      })
+
+      const payload = {
+        tenant_id: tenantId,
+        category_id: form.category_id || null,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        badge: form.badge.trim() || null,
+        featured: form.featured,
+        visible: form.visible,
+        images: form.images,
+        tags: form.tags,
+        attributes,
+      }
+
+      let productId = product?.id
+      if (productId) {
+        const { error: err } = await supabase.from('products').update(payload).eq('id', productId)
+        if (err) throw err
+      } else {
+        const { data, error: err } = await supabase.from('products').insert({ ...payload, sort: nextSort }).select('id').single()
+        if (err) throw err
+        productId = data.id
+      }
+
+      const rows = form.variants.map((v, i) => ({
+        tenant_id: tenantId,
+        product_id: productId,
+        label: v.label.trim() || 'Único',
+        price: num(v.price),
+        compare_price: num(v.compare_price),
+        stock: useStock ? num(v.stock) : null,
+        unit: usePeso ? v.unit : 'und',
+        min_qty: usePeso ? Number(v.min_qty) || 1 : 1,
+        step: usePeso ? Number(v.step) || 1 : 1,
+        sku: v.sku.trim() || null,
+        visible: true,
+        sort: i,
+        ...(v.id ? { id: v.id } : {}),
+      }))
+
+      const keptIds = rows.filter((r) => r.id).map((r) => r.id)
+      const originalIds = (product?.product_variants || []).map((v) => v.id)
+      const removedIds = originalIds.filter((id) => !keptIds.includes(id))
+
+      if (removedIds.length) {
+        const { error: err } = await supabase.from('product_variants').delete().in('id', removedIds)
+        if (err) throw err
+      }
+      const existing = rows.filter((r) => r.id)
+      const fresh = rows.filter((r) => !r.id)
+      if (existing.length) {
+        const { error: err } = await supabase.from('product_variants').upsert(existing)
+        if (err) throw err
+      }
+      if (fresh.length) {
+        const { error: err } = await supabase.from('product_variants').insert(fresh)
+        if (err) throw err
+      }
+
+      if (removedImages.current.length) await removeImages(removedImages.current)
+      uploadedThisSession.current = []
+      onSaved()
+    } catch (e) {
+      setError(e.message || 'No se pudo guardar el producto.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="drawer" role="dialog" aria-modal="true">
+      <div className="drawer__backdrop" onClick={cancel} />
+      <div className="drawer__panel">
+        <header className="drawer__head">
+          <h2 className="display">{product ? 'Editar producto' : 'Nuevo producto'}</h2>
+          <button className="icon-btn" onClick={cancel} aria-label="Cerrar"><IconClose /></button>
+        </header>
+
+        <div className="drawer__body">
+          <section className="form-block">
+            <h3 className="form-block__title">Fotos</h3>
+            <div className="image-grid">
+              {form.images.map((img, i) => (
+                <div key={img.path_full || img.full} className="image-tile">
+                  <img src={img.thumb || img.full} alt="" />
+                  {i === 0 && <span className="image-tile__cover">Portada</span>}
+                  <div className="image-tile__actions">
+                    <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} aria-label="Mover antes"><IconArrowUp width={15} height={15} /></button>
+                    <button type="button" onClick={() => moveImage(i, 1)} disabled={i === form.images.length - 1} aria-label="Mover después"><IconArrowDown width={15} height={15} /></button>
+                    <button type="button" onClick={() => removeImage(i)} aria-label="Quitar foto"><IconTrash width={15} height={15} /></button>
+                  </div>
+                </div>
+              ))}
+              {Array.from({ length: uploading }).map((_, i) => (
+                <div key={`up-${i}`} className="image-tile image-tile--loading"><Loader /></div>
+              ))}
+              {form.images.length + uploading < MAX_IMAGES && (
+                <button
+                  type="button"
+                  className="image-tile image-tile--add"
+                  onClick={() => fileInput.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    onFiles(e.dataTransfer.files)
+                  }}
+                >
+                  <IconImage />
+                  <small>Agregar foto</small>
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                onFiles(e.target.files)
+                e.target.value = ''
+              }}
+            />
+            <small className="muted">Hasta {MAX_IMAGES} fotos. Se optimizan automáticamente sin perder calidad visible.</small>
+          </section>
+
+          <section className="form-block">
+            <h3 className="form-block__title">Información</h3>
+            <label className="field">
+              <span>Nombre</span>
+              <input value={form.name} maxLength={120} onChange={(e) => set({ name: e.target.value })} />
+            </label>
+
+            <div className="field">
+              <span>Categoría</span>
+              {newCat === null ? (
+                <div className="row">
+                  <select value={form.category_id} onChange={(e) => set({ category_id: e.target.value })}>
+                    <option value="">Sin categoría</option>
+                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button type="button" className="btn btn--sm" onClick={() => setNewCat('')}><IconPlus width={16} height={16} /> Nueva</button>
+                </div>
+              ) : (
+                <div className="row">
+                  <input autoFocus placeholder="Nombre de la categoría" value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), createCategory())} />
+                  <button type="button" className="btn btn--sm btn--primary" onClick={createCategory}>Crear</button>
+                  <button type="button" className="btn btn--sm btn--ghost" onClick={() => setNewCat(null)}>Cancelar</button>
+                </div>
+              )}
+            </div>
+
+            <label className="field">
+              <span>Descripción</span>
+              <textarea rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
+            </label>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>Etiqueta destacada</span>
+                <input placeholder="Nuevo, Oferta, Más vendido…" maxLength={24} value={form.badge} onChange={(e) => set({ badge: e.target.value })} />
+              </label>
+              <div className="field field--switches">
+                <Switch checked={form.visible} onChange={(v) => set({ visible: v })} label="Visible en el catálogo" />
+                <Switch checked={form.featured} onChange={(v) => set({ featured: v })} label="Destacado" />
+              </div>
+            </div>
+          </section>
+
+          <section className="form-block">
+            <div className="form-block__head">
+              <h3 className="form-block__title">Variantes y precios</h3>
+              <button type="button" className="btn btn--sm" onClick={addVariant}><IconPlus width={16} height={16} /> Variante</button>
+            </div>
+            <small className="muted">Tamaños, presentaciones, duraciones o medidas. Deja el precio vacío para mostrar “A consultar”.</small>
+
+            <div className="variants">
+              {form.variants.map((v) => (
+                <div key={v.key} className="variant">
+                  <div className="variant__grid">
+                    <label className="field">
+                      <span>Nombre</span>
+                      <input placeholder={form.variants.length > 1 ? 'Ej. 100 ml' : 'Único'} value={v.label} onChange={(e) => setVariant(v.key, { label: e.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Precio (S/)</span>
+                      <input inputMode="decimal" placeholder="A consultar" value={v.price} onChange={(e) => setVariant(v.key, { price: e.target.value.replace(',', '.') })} />
+                    </label>
+                    <label className="field">
+                      <span>Precio anterior</span>
+                      <input inputMode="decimal" placeholder="Opcional" value={v.compare_price} onChange={(e) => setVariant(v.key, { compare_price: e.target.value.replace(',', '.') })} />
+                    </label>
+                    {useStock && (
+                      <label className="field">
+                        <span>Stock</span>
+                        <input inputMode="decimal" placeholder="Sin control" value={v.stock} onChange={(e) => setVariant(v.key, { stock: e.target.value.replace(',', '.') })} />
+                      </label>
+                    )}
+                    {usePeso && (
+                      <>
+                        <label className="field">
+                          <span>Se vende por</span>
+                          <select value={v.unit} onChange={(e) => setVariant(v.key, { unit: e.target.value })}>
+                            {UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>Cantidad mínima</span>
+                          <input inputMode="decimal" value={v.min_qty} onChange={(e) => setVariant(v.key, { min_qty: e.target.value.replace(',', '.') })} />
+                        </label>
+                        <label className="field">
+                          <span>Incremento</span>
+                          <input inputMode="decimal" value={v.step} onChange={(e) => setVariant(v.key, { step: e.target.value.replace(',', '.') })} />
+                        </label>
+                      </>
+                    )}
+                    <label className="field">
+                      <span>Código / SKU</span>
+                      <input placeholder="Opcional" value={v.sku} onChange={(e) => setVariant(v.key, { sku: e.target.value })} />
+                    </label>
+                  </div>
+                  {form.variants.length > 1 && (
+                    <button type="button" className="icon-btn variant__remove" onClick={() => removeVariant(v.key)} aria-label="Quitar variante">
+                      <IconTrash width={16} height={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="form-block">
+            <div className="form-block__head">
+              <h3 className="form-block__title">Características</h3>
+              <button
+                type="button"
+                className="btn btn--sm"
+                onClick={() => set({ attributes: [...form.attributes, { key: Math.random().toString(36).slice(2), name: '', value: '' }] })}
+              >
+                <IconPlus width={16} height={16} /> Campo
+              </button>
+            </div>
+            <small className="muted">Datos libres que se muestran en el detalle: marca, aroma, material, medida, garantía…</small>
+            {form.attributes.map((a) => (
+              <div key={a.key} className="attr-row">
+                <input placeholder="Campo (ej. Marca)" value={a.name} onChange={(e) => set({ attributes: form.attributes.map((x) => (x.key === a.key ? { ...x, name: e.target.value } : x)) })} />
+                <input placeholder="Valor (ej. Stanley)" value={a.value} onChange={(e) => set({ attributes: form.attributes.map((x) => (x.key === a.key ? { ...x, value: e.target.value } : x)) })} />
+                <button type="button" className="icon-btn" onClick={() => set({ attributes: form.attributes.filter((x) => x.key !== a.key) })} aria-label="Quitar campo">
+                  <IconTrash width={16} height={16} />
+                </button>
+              </div>
+            ))}
+          </section>
+
+          <section className="form-block">
+            <h3 className="form-block__title">Palabras clave</h3>
+            <small className="muted">Otras formas en que tus clientes buscan este producto. Las usa el buscador y el bot (ej. foco, bombilla, lámpara).</small>
+            <div className="tags">
+              {form.tags.map((t) => (
+                <span key={t} className="tag">
+                  {t}
+                  <button type="button" onClick={() => set({ tags: form.tags.filter((x) => x !== t) })} aria-label={`Quitar ${t}`}><IconClose width={12} height={12} /></button>
+                </span>
+              ))}
+              <input
+                className="tags__input"
+                placeholder="Escribe y presiona Enter"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault()
+                    addTag()
+                  }
+                }}
+                onBlur={addTag}
+              />
+            </div>
+          </section>
+        </div>
+
+        <footer className="drawer__foot">
+          {error && <p className="alert alert--error">{error}</p>}
+          <div className="row row--end">
+            <button className="btn btn--ghost" onClick={cancel} disabled={saving}>Cancelar</button>
+            <button className="btn btn--primary" onClick={save} disabled={saving || uploading > 0}>
+              {saving ? 'Guardando…' : uploading > 0 ? 'Subiendo fotos…' : 'Guardar producto'}
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  )
+}

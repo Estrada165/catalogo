@@ -6,6 +6,7 @@ import Onboarding from './pages/panel/Onboarding'
 import PanelLayout from './pages/panel/PanelLayout'
 import PanelHome from './pages/panel/PanelHome'
 import ComingSoon from './pages/panel/ComingSoon'
+import Products from './pages/panel/Products'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminTenants from './pages/admin/AdminTenants'
 import Catalog from './pages/public/Catalog'
@@ -21,7 +22,7 @@ export default function App() {
       <Route path="/panel/bienvenida" element={<RequireOwner needTenant={false}><Onboarding /></RequireOwner>} />
       <Route path="/panel" element={<RequireOwner><PanelLayout /></RequireOwner>}>
         <Route index element={<PanelHome />} />
-        <Route path="productos" element={<ComingSoon title="Productos" phase="fase 2" />} />
+        <Route path="productos" element={<Products />} />
         <Route path="pedidos" element={<ComingSoon title="Pedidos" phase="fase 3" />} />
         <Route path="apariencia" element={<ComingSoon title="Apariencia" phase="fase 2" />} />
         <Route path="bot" element={<ComingSoon title="Bot" phase="fase 5" />} />

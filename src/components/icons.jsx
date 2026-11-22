@@ -60,3 +60,33 @@ export const IconCheck = (p) => (
 export const IconCopy = (p) => (
   <svg {...base} {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></svg>
 )
+export const IconPlus = (p) => (
+  <svg {...base} {...p}><path d="M12 5v14M5 12h14" /></svg>
+)
+export const IconEdit = (p) => (
+  <svg {...base} {...p}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+)
+export const IconTrash = (p) => (
+  <svg {...base} {...p}><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+)
+export const IconClose = (p) => (
+  <svg {...base} {...p}><path d="M18 6 6 18M6 6l12 12" /></svg>
+)
+export const IconImage = (p) => (
+  <svg {...base} {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 21" /></svg>
+)
+export const IconArrowUp = (p) => (
+  <svg {...base} {...p}><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+)
+export const IconArrowDown = (p) => (
+  <svg {...base} {...p}><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+)
+export const IconStar = (p) => (
+  <svg {...base} {...p}><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z" /></svg>
+)
+export const IconEye = (p) => (
+  <svg {...base} {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+)
+export const IconEyeOff = (p) => (
+  <svg {...base} {...p}><path d="M17.9 17.9A10 10 0 0 1 12 19c-6.5 0-10-7-10-7a18 18 0 0 1 4.1-4.9M9.9 5.2A9 9 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2M2 2l20 20" /></svg>
+)
