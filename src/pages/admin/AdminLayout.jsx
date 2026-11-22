@@ -1,3 +1,4 @@
+import '../../styles/shell.js'
 import { NavLink, Outlet } from 'react-router-dom'
 import { APP_NAME } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'

@@ -42,10 +42,10 @@ Plataforma de catálogos digitales para negocios de cualquier rubro (ferretería
 ## Fases
 
 - [x] **0.** Modelo de datos, RLS, auth, alta de negocio por rubro, superadmin básico
-- [ ] **1.** Motor genérico del catálogo + rediseño estético
-- [ ] **2.** Panel del dueño: productos, variantes, apariencia, secciones y módulos
-- [ ] **3.** Checkout → pedido con código → WhatsApp + panel de pedidos
+- [x] **1.** Catálogo público con el sistema visual del catálogo de streaming (teclas, paleta por acento, avión de papel, tema con círculo, hojas, Lu que corre el catálogo)
+- [~] **2.** Panel del dueño: productos, variantes y categorías listos; falta configuración del negocio, apariencia, secciones y módulos
+- [~] **3.** Checkout → pedido con código → WhatsApp listo; falta el panel de pedidos
 - [ ] **4.** QR personalizable + analítica
-- [ ] **5.** Bot local conectado al catálogo
+- [~] **5.** Bot local (Lu) listo en el catálogo; falta su sección en el panel (nombre, saludo, preguntas sin respuesta)
 - [ ] **6.** Delivery por zonas, horario, venta por peso, promociones
 - [ ] **7.** Modo cotización + proforma

@@ -1,3 +1,4 @@
+import '../../styles/shell.js'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase, APP_NAME } from '../../lib/supabase'

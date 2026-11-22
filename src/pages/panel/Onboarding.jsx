@@ -1,3 +1,4 @@
+import '../../styles/shell.js'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, APP_NAME } from '../../lib/supabase'

@@ -4,10 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import { APP_NAME } from './lib/supabase'
-import './styles/tokens.css'
-import './styles/base.css'
-import './styles/app.css'
-import './styles/panel.css'
 
 document.title = APP_NAME
 
