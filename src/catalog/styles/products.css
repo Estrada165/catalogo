@@ -414,3 +414,8 @@ a.info__pay { padding-left: 10px; }
 .how span { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 13px; box-shadow: 0 2px 0 var(--accent-edge); }
 .how p { font-size: 14.5px; line-height: 1.45; align-self: center; }
 .sheet:focus, .sheet:focus-visible { outline: none; }
+
+/* Portada sube bajo la barra superior (que es invisible al inicio): logo a la altura de los botones */
+.hero2 { margin-top: calc(-1 * var(--header-h)); padding-top: 12px; }
+.hero2__id { padding-right: 112px; min-height: 52px; }
+@media (min-width: 620px) { .hero2 { padding-top: 14px; } }
