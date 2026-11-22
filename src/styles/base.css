@@ -261,3 +261,4 @@ h2.display { font-size: 1.35rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+.err-code { display: block; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: .82rem; text-align: left; word-break: break-word; }

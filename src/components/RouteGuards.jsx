@@ -4,13 +4,27 @@ import { useAuth } from '../context/AuthContext'
 import Loader from './Loader'
 
 function ProfileMissing() {
-  const { signOut } = useAuth()
+  const { signOut, authError, refresh, user } = useAuth()
   return (
     <div className="center-screen">
       <div className="card card--narrow">
         <h2>No encontramos tu perfil</h2>
-        <p className="muted">Tu usuario existe pero no tiene perfil asociado. Contacta al administrador.</p>
-        <button className="btn" onClick={signOut}>Cerrar sesión</button>
+        {authError ? (
+          <>
+            <p className="muted">Supabase respondió con un error al leer tu perfil:</p>
+            <code className="err-code">{authError}</code>
+            {/42501|permission denied/i.test(authError) && (
+              <p className="muted">Faltan permisos de la API sobre las tablas. Ejecuta el bloque de permisos (GRANT) en el SQL Editor de Supabase.</p>
+            )}
+          </>
+        ) : (
+          <p className="muted">Tu usuario existe pero no tiene perfil en la tabla profiles. Crea la fila para este usuario o contacta al administrador.</p>
+        )}
+        <small className="muted">ID de usuario: {user?.id}</small>
+        <div className="row">
+          <button className="btn" onClick={refresh}>Reintentar</button>
+          <button className="btn btn--ghost" onClick={signOut}>Cerrar sesión</button>
+        </div>
       </div>
     </div>
   )

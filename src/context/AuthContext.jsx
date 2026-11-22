@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [tenant, setTenant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [dataReady, setDataReady] = useState(false)
+  const [authError, setAuthError] = useState(null)
   const loadedFor = useRef(undefined)
 
   const loadUserData = useCallback(async (user) => {
@@ -22,10 +23,12 @@ export function AuthProvider({ children }) {
     // Recarga silenciosa si es el mismo usuario (otra pestaña o la vista previa renovaron la sesión)
     if (loadedFor.current !== user.id) setDataReady(false)
     loadedFor.current = user.id
-    const [{ data: prof }, { data: ten }] = await Promise.all([
+    const [{ data: prof, error: e1 }, { data: ten, error: e2 }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('tenants').select('*').eq('owner_id', user.id).maybeSingle(),
     ])
+    const err = e1 || e2
+    setAuthError(err ? `${err.code || ''} ${err.message}`.trim() : null)
     setProfile(prof || null)
     setTenant(ten || null)
     setDataReady(true)
@@ -69,6 +72,7 @@ export function AuthProvider({ children }) {
     profile,
     tenant,
     isSuperadmin: profile?.role === 'superadmin',
+    authError,
     loading: loading || !dataReady,
     refresh,
     signOut,
