@@ -4,7 +4,7 @@ import { removeImages, uploadProductImage } from '../../lib/images'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import Cropper from '../../components/Cropper'
-import { Crop } from 'lucide-react'
+import { Crop, ListChecks, AlertTriangle, ListOrdered, StickyNote } from 'lucide-react'
 import { IconClose, IconImage, IconPlus, IconTrash, IconArrowUp, IconArrowDown } from '../../components/icons'
 
 const UNITS = [
@@ -21,6 +21,16 @@ const UNITS = [
 
 const MAX_IMAGES = 6
 
+// Bloques de "Más información" que se ven al abrir el producto en el catálogo
+export const DETAIL_KINDS = [
+  { kind: 'incluye', title: 'Incluye', Icon: ListChecks, hint: 'Lo que trae o incluye. Uno por línea.', ph: 'Estuche de regalo\nTarjeta con dedicatoria' },
+  { kind: 'atencion', title: 'Ten en cuenta', Icon: AlertTriangle, hint: 'Avisos, condiciones o restricciones. Uno por línea.', ph: 'No incluye pilas\nColores sujetos a stock' },
+  { kind: 'pasos', title: 'Cómo usar', Icon: ListOrdered, hint: 'Pasos en orden. Uno por línea.', ph: 'Limpia la superficie\nAplica dos capas' },
+  { kind: 'nota', title: 'Nota', Icon: StickyNote, hint: 'Un texto destacado (garantía, cuidado, envío…).', ph: 'Garantía de 6 meses por defectos de fábrica.' },
+]
+const kindInfo = (k) => DETAIL_KINDS.find((d) => d.kind === k) || DETAIL_KINDS[0]
+const newKey = () => Math.random().toString(36).slice(2)
+
 function emptyVariant() {
   return { key: Math.random().toString(36).slice(2), label: '', price: '', compare_price: '', stock: '', unit: 'und', min_qty: '1', step: '1', sku: '' }
 }
@@ -29,7 +39,7 @@ function toForm(product) {
   if (!product) {
     return {
       name: '', description: '', category_id: '', badge: '', featured: false, visible: true,
-      images: [], tags: [], attributes: [], variants: [{ ...emptyVariant(), label: 'Único' }],
+      images: [], tags: [], attributes: [], details: [], variants: [{ ...emptyVariant(), label: 'Único' }],
     }
   }
   const variants = [...(product.product_variants || [])]
@@ -56,6 +66,9 @@ function toForm(product) {
     images: product.images || [],
     tags: product.tags || [],
     attributes: Object.entries(product.attributes || {}).map(([k, v]) => ({ key: Math.random().toString(36).slice(2), name: k, value: String(v) })),
+    details: (Array.isArray(product.details) ? product.details : []).map((d) => ({
+      key: newKey(), kind: d.kind || 'incluye', title: d.title || kindInfo(d.kind).title, text: (d.items || []).join('\n'),
+    })),
     variants: variants.length ? variants : [{ ...emptyVariant(), label: 'Único' }],
   }
 }
@@ -150,6 +163,16 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
   const addVariant = () => set({ variants: [...form.variants, emptyVariant()] })
   const removeVariant = (key) => form.variants.length > 1 && set({ variants: form.variants.filter((v) => v.key !== key) })
 
+  const setDetail = (key, patch) => set({ details: form.details.map((d) => (d.key === key ? { ...d, ...patch } : d)) })
+  const addDetail = (kind) => set({ details: [...form.details, { key: newKey(), kind, title: kindInfo(kind).title, text: '' }] })
+  const moveDetail = (idx, dir) => {
+    const arr = [...form.details]
+    const to = idx + dir
+    if (to < 0 || to >= arr.length) return
+    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
+    set({ details: arr })
+  }
+
   const addTag = () => {
     const parts = tagInput.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
     if (!parts.length) return
@@ -195,6 +218,15 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
         if (a.name.trim() && a.value.trim()) attributes[a.name.trim()] = a.value.trim()
       })
 
+      const details = form.details
+        .map((d) => ({
+          kind: d.kind,
+          title: d.title.trim() || kindInfo(d.kind).title,
+          items: (d.kind === 'nota' ? [d.text.trim()] : d.text.split('\n').map((t) => t.trim())).filter(Boolean).slice(0, 30),
+        }))
+        .filter((d) => d.items.length)
+        .slice(0, 8)
+
       const payload = {
         tenant_id: tenantId,
         category_id: form.category_id || null,
@@ -206,6 +238,8 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
         images: form.images,
         tags: form.tags,
         attributes,
+        // Solo se envía si hay algo (o ya había), así no falla si aún no se ejecutó la migración 008
+        ...(details.length || (product && 'details' in product) ? { details } : {}),
       }
 
       let productId = product?.id
@@ -257,7 +291,10 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
       uploadedThisSession.current = []
       onSaved()
     } catch (e) {
-      setError(e.message || 'No se pudo guardar el producto.')
+      const missing = /details/.test(e.message || '') && /column|schema cache/i.test(e.message || '')
+      setError(missing
+        ? 'Para guardar “Más información” falta ejecutar la actualización 008 en Supabase (SQL Editor).'
+        : e.message || 'No se pudo guardar el producto.')
       setSaving(false)
     }
   }
@@ -423,6 +460,36 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className="form-block">
+            <h3 className="form-block__title">Más información</h3>
+            <small className="muted">Lo que el cliente ve al tocar “Ver detalles”: qué incluye, qué tener en cuenta, cómo usarlo. Agrega solo lo que te sirva.</small>
+            {form.details.map((d, i) => {
+              const info = kindInfo(d.kind)
+              return (
+                <div key={d.key} className="dblock" data-kind={d.kind}>
+                  <div className="dblock__head">
+                    <span className="dblock__icon"><info.Icon size={16} /></span>
+                    <input className="dblock__title" value={d.title} maxLength={40} placeholder={info.title} onChange={(e) => setDetail(d.key, { title: e.target.value })} aria-label="Título del bloque" />
+                    <button type="button" className="icon-btn" onClick={() => moveDetail(i, -1)} disabled={i === 0} aria-label="Subir"><IconArrowUp width={15} height={15} /></button>
+                    <button type="button" className="icon-btn" onClick={() => moveDetail(i, 1)} disabled={i === form.details.length - 1} aria-label="Bajar"><IconArrowDown width={15} height={15} /></button>
+                    <button type="button" className="icon-btn" onClick={() => set({ details: form.details.filter((x) => x.key !== d.key) })} aria-label="Quitar bloque"><IconTrash width={15} height={15} /></button>
+                  </div>
+                  <textarea rows={d.kind === 'nota' ? 2 : 3} maxLength={1500} value={d.text} placeholder={info.ph} onChange={(e) => setDetail(d.key, { text: e.target.value })} />
+                  <small className="muted">{info.hint}</small>
+                </div>
+              )
+            })}
+            {form.details.length < 8 && (
+              <div className="dblock-add">
+                {DETAIL_KINDS.map((k) => (
+                  <button key={k.kind} type="button" className="btn btn--sm" onClick={() => addDetail(k.kind)}>
+                    <k.Icon size={15} /> {k.title}
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="form-block">

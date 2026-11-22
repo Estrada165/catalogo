@@ -45,6 +45,10 @@ export default function ProductCard({ p, index, qty, sym, category, onOpen, onAd
       <div className="pc__body">
         {category && <span className="pc__cat">{category}</span>}
         <button className="pc__name" onClick={() => onOpen(p)}>{p.name}</button>
+        {p.description && <p className="pc__desc">{p.description}</p>}
+        <button className="pc__more" onClick={() => onOpen(p)}>
+          {!single && !p.soldOut ? `${p.variants.length} opciones` : 'Ver detalles'} <ChevronRight size={13} />
+        </button>
         <div className="pc__row">
           <div className="pc__price tnum">
             {info.price === null ? (
@@ -75,7 +79,6 @@ export default function ProductCard({ p, index, qty, sym, category, onOpen, onAd
             <button onClick={(e) => onAdd(v, e.currentTarget)} disabled={v.max !== null && qty >= v.max} aria-label="Agregar uno más"><Plus size={18} /></button>
           </div>
         )}
-        {!single && !p.soldOut && <small className="pc__opts">{p.variants.length} opciones</small>}
       </div>
     </article>
   )

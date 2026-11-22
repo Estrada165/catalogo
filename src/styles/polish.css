@@ -50,11 +50,11 @@ h2.display { font-size: 1.3rem; }
 .form-block__title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em; }
 .field > span, .field__row { font-size: .82rem; font-weight: 700; color: var(--text-2); letter-spacing: .01em; }
 .field__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.field input, .field select, .field textarea, .search input, .select, .row > select, .row > input, .add-row input, .attr-row input, .zone-add input, .hex-input {
+.field input, .field select, .field textarea, .search input, .select, .row > select, .row > input, .add-row input, .attr-row input, .zone-add input, .hex-input, .dblock textarea {
   border-radius: 11px; background: var(--surface-2); border-color: var(--line);
   transition: border-color .2s, box-shadow .2s, background .2s;
 }
-.field input:focus, .field select:focus, .field textarea:focus, .select:focus, .row > input:focus {
+.field input:focus, .field select:focus, .field textarea:focus, .select:focus, .row > input:focus, .dblock textarea:focus {
   background: var(--surface); border-color: var(--text); box-shadow: 0 0 0 4px var(--tint-soft);
 }
 .link-sm { font-size: .8rem; font-weight: 700; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
@@ -426,3 +426,17 @@ h2.display { font-size: 1.3rem; }
   .image-tile__actions button { width: 100%; height: 26px; border-radius: 7px; }
 }
 @media (max-width: 860px) { .auth2__frame { flex: none; margin: auto; } }
+
+/* ── Editor: bloques de "Más información" ── */
+.dblock { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: color-mix(in oklab, var(--surface) 60%, var(--bg)); }
+.dblock__head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dblock__icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.dblock[data-kind='atencion'] .dblock__icon { color: #b45309; }
+.dblock[data-kind='incluye'] .dblock__icon { color: #15803d; }
+.dblock__title { flex: 1; min-width: 0; font-weight: 700; padding: 7px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; outline: none; }
+.dblock__title:hover { border-color: var(--line); }
+.dblock__title:focus { border-color: var(--accent); background: var(--bg); }
+.dblock .icon-btn { width: 32px; height: 32px; flex-shrink: 0; }
+.dblock textarea { width: 100%; resize: vertical; padding: 10px 12px; border: 1px solid var(--line); outline: none; font: inherit; color: inherit; }
+.dblock-add { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 480px) { .dblock .icon-btn { width: 28px; height: 28px; } .dblock__icon { display: none; } }

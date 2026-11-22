@@ -12,7 +12,7 @@ const STYLE_DEFAULTS = {
 
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v))
 
-export function normalizeCatalog({ tenant, config, categories, products, zones, faqs }) {
+export function normalizeCatalog({ tenant, config, categories, products, zones, faqs, popular }) {
   const business = config?.business || {}
   const theme = config?.theme || {}
   const checkout = config?.checkout || {}
@@ -74,6 +74,9 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
         description: p.description || '',
         images: p.images || [],
         attributes: p.attributes || {},
+        details: (Array.isArray(p.details) ? p.details : [])
+          .filter((d) => d && Array.isArray(d.items) && d.items.some(Boolean))
+          .map((d) => ({ kind: d.kind || 'incluye', title: d.title || '', items: d.items.filter(Boolean).map(String) })),
         tags: p.tags || [],
         badge: p.badge || null,
         featured: !!p.featured,
@@ -104,6 +107,8 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
     products: list,
     byId,
     variantById,
+    // Lo más pedido (pedidos reales); si la función aún no existe llega vacío
+    popular: (popular || []).map((r) => byId[r.product_id]).filter((p) => p && !p.soldOut),
     zones: (zones || []).filter((z) => z.active !== false).sort((a, b) => a.sort - b.sort),
     faqs: (faqs || []).filter((f) => f.active !== false).sort((a, b) => a.sort - b.sort),
     bot: {
@@ -129,18 +134,19 @@ export async function fetchCatalog(slug) {
     return null
   }
 
-  const [cfg, cats, prods, zones, faqs] = await Promise.all([
+  const [cfg, cats, prods, zones, faqs, pop] = await Promise.all([
     supabase.from('tenant_config').select('*').eq('tenant_id', tenant.id).maybeSingle(),
     supabase.from('categories').select('*').eq('tenant_id', tenant.id),
     supabase.from('products').select('*, product_variants(*)').eq('tenant_id', tenant.id),
     supabase.from('delivery_zones').select('*').eq('tenant_id', tenant.id),
     supabase.from('bot_faqs').select('*').eq('tenant_id', tenant.id),
+    supabase.rpc('popular_products', { p_slug: tenant.slug, p_limit: 8 }).then((r) => r, () => ({ data: [] })),
   ])
   const failed = [cfg, cats, prods].find((r) => r.error)
   if (failed) throw failed.error
 
   const live = tenant.status === 'activo' && (!tenant.expires_at || new Date(tenant.expires_at) > new Date())
-  const raw = { tenant, config: cfg.data, categories: cats.data, products: prods.data, zones: zones.data, faqs: faqs.data }
+  const raw = { tenant, config: cfg.data, categories: cats.data, products: prods.data, zones: zones.data, faqs: faqs.data, popular: Array.isArray(pop?.data) ? pop.data : [] }
   // Si el negocio no está activo y aun así lo vemos, es su dueño (o el superadmin) en vista previa
   return { state: 'ok', preview: !live, raw, ...normalizeCatalog(raw) }
 }

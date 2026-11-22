@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Search, X, Moon, Sun, ShoppingBag, MessageCircle, Plus, ChevronRight, Clock, MapPin, Truck, Store,
-  FileText, Check, Instagram, Facebook, Music2, Star, Eye, Wallet, Bot,
+  FileText, Check, Instagram, Facebook, Music2, Star, Eye, Wallet, Bot, Flame, Info, MousePointerClick,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getSessionId } from '../lib/utils'
@@ -20,6 +20,7 @@ import ProductSheet from './components/ProductSheet'
 import CartSheet from './components/CartSheet'
 import LuChat from './components/LuChat'
 import Sheet from './components/Sheet'
+import InfoSheet from './components/InfoSheet'
 import { StateScreen, LoadingScreen } from './components/StateScreens'
 import './styles/tokens.css'
 import './styles/catalog.css'
@@ -80,6 +81,8 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const [detail, setDetail] = useState(null)
   const [cartOpen, setCartOpen] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
+  const [howOpen, setHowOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [theme, setTheme] = useState(() => {
@@ -135,19 +138,22 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const words = norm(q).split(' ').filter(Boolean)
   const matches = (p) => {
     if (!words.length) return true
-    const hay = norm([p.name, ...(p.tags || []), cat.catById[p.category_id]?.name, ...Object.values(p.attributes || {}), ...p.variants.map((v) => v.label)].join(' '))
+    const hay = norm([p.name, ...(p.tags || []), cat.catById[p.category_id]?.name, ...Object.values(p.attributes || {}), ...p.variants.map((v) => v.label), ...p.details.flatMap((d) => d.items)].join(' '))
     return words.every((w) => hay.includes(w))
   }
-  const showCats = cat.sections.on('categories') && cat.categories.length > 1
-  const grouped = showCats && !words.length && catId === 'all'
-  const navCats = cat.categories.map((c) => ({ ...c, count: cat.products.filter((p) => p.category_id === c.id).length }))
   const groups = useMemo(() => {
     const g = cat.categories.map((c) => ({ id: c.id, name: c.name, items: cat.products.filter((p) => p.category_id === c.id) })).filter((x) => x.items.length)
     const rest = cat.products.filter((p) => !p.category_id)
-    if (rest.length) g.push({ id: 'otros', name: 'Más productos', items: rest })
+    if (rest.length && g.length) g.push({ id: 'otros', name: 'Otros', items: rest })
     return g
   }, [cat])
-  const visible = cat.products.filter((p) => (catId === 'all' || p.category_id === catId) && matches(p))
+  // La barra aparece apenas haya una categoría con productos; lo que no tiene categoría va a "Otros"
+  const showCats = cat.sections.on('categories') && groups.length > 0
+  const grouped = showCats && !words.length && catId === 'all'
+  const navCats = groups.map((g) => ({ id: g.id, name: g.name, count: g.items.length }))
+  const inCat = (p, id) => id === 'all' || (id === 'otros' ? !p.category_id : p.category_id === id)
+  const visible = cat.products.filter((p) => inCat(p, catId) && matches(p))
+  const groupName = (id) => groups.find((g) => g.id === id)?.name || 'Productos'
   const summary = useMemo(() => summarize(lines, cat), [lines, cat])
   const qtyOf = (p) => (p.variants.length === 1 ? lines.find((l) => l.variantId === p.variants[0].id)?.qty || 0 : lines.filter((l) => p.variants.some((v) => v.id === l.variantId)).length)
   const inCart = (variantId) => lines.find((l) => l.variantId === variantId)?.qty || 0
@@ -162,7 +168,14 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
       if (vis[0]) setSpy(vis[0].target.dataset.catSection)
     }, { rootMargin: '-35% 0px -55% 0px' })
     els.forEach((el) => io.observe(el))
-    const top = () => { if (scrollY < (document.getElementById('catalogo')?.offsetTop || 400) - 120) setSpy('all') }
+    const top = () => {
+      if (scrollY < (document.getElementById('catalogo')?.offsetTop || 400) - 120) setSpy('all')
+      // Al llegar al final, la última categoría queda marcada aunque no alcance la mitad de la pantalla
+      else if (innerHeight + scrollY >= document.documentElement.scrollHeight - 60) {
+        const last = els[els.length - 1]
+        if (last && last.getBoundingClientRect().top < innerHeight) setSpy(last.dataset.catSection)
+      }
+    }
     addEventListener('scroll', top, { passive: true })
     return () => { io.disconnect(); removeEventListener('scroll', top) }
   }, [grouped, groups.length])
@@ -177,8 +190,22 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   }
   const openDetail = (p) => {
     setDetail(p)
+    if (!embedded) history.replaceState(history.state, '', `${location.pathname}?p=${p.id}${cat.preview ? '&preview=1' : ''}`)
     if (!preview) track(slug, 'product_view', p.id)
   }
+  const closeDetail = () => {
+    setDetail(null)
+    if (!embedded && new URLSearchParams(location.search).has('p')) {
+      const qs = new URLSearchParams(location.search)
+      qs.delete('p')
+      history.replaceState(history.state, '', `${location.pathname}${qs.toString() ? `?${qs}` : ''}`)
+    }
+  }
+  // Enlace directo a un producto: /negocio?p=ID
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('p')
+    if (id && cat.byId[id]) setDetail(cat.byId[id])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -207,6 +234,13 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const deliveryOn = cat.modules.delivery !== false && cat.checkout?.allow_delivery !== false
   const pickupOn = cat.checkout?.allow_pickup !== false
   const featured = cat.sections.on('featured') ? cat.products.filter((p) => p.featured && !p.soldOut).slice(0, 10) : []
+  // Lo más pedido: pedidos reales; si aún no hay y los destacados están apagados, se muestran los destacados
+  const popular = cat.sections.on('popular') ? cat.popular.slice(0, 6) : []
+  const picks = popular.length >= 2
+    ? { label: 'Lo más pedido', items: popular }
+    : !featured.length && cat.sections.on('popular')
+      ? { label: 'Recomendados', items: cat.products.filter((p) => p.featured && !p.soldOut).slice(0, 6) }
+      : null
   const art = cat.products.filter((p) => p.images?.length).slice(0, 9)
   const showFaq = cat.sections.on('faq') && cat.faqs.length > 0
   const policy = cat.sections.on('policies') ? cat.sections.props('policies') : null
@@ -216,9 +250,21 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
     if (botReady) window.dispatchEvent(new CustomEvent('cat:open-bot'))
     else if (s.whatsapp) window.open(waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`), '_blank', 'noopener')
   }
-  const social = Object.entries(s.social || {}).filter(([, v]) => v)
+  const social = cat.sections.on('social') ? Object.entries(s.social || {}).filter(([, v]) => v) : []
   const SOCIAL_ICON = { instagram: Instagram, facebook: Facebook, tiktok: Music2 }
-  const year = new Date().getFullYear()
+  const showAddress = cat.sections.on('location') && !!s.address
+  const showHours = cat.sections.on('hours') && hours.length > 0
+  const hasInfo = showAddress || showHours || deliveryOn || pickupOn || cat.payment_methods.length > 0
+  const payNames = cat.payment_methods.map((m) => m.name)
+  const howSteps = [
+    'Busca lo que necesitas y toca el producto para ver fotos, opciones y detalles.',
+    'Agrégalo al carrito y elige la cantidad.',
+    deliveryOn && pickupOn ? 'Elige delivery o recojo en tienda y completa tus datos.'
+      : deliveryOn ? 'Elige tu zona de delivery y completa tus datos.'
+        : pickupOn ? 'Indica que recogerás en tienda y completa tus datos.' : 'Completa tus datos.',
+    'Envía tu pedido: se abre WhatsApp con todo el detalle listo para enviar.',
+    payNames.length ? `Coordinamos el pago (${payNames.join(', ')}) y te confirmamos.` : 'Te respondemos para confirmar tu pedido.',
+  ]
   const minZone = cat.zones.length ? Math.min(...cat.zones.map((z) => Number(z.cost) || 0)) : null
   const catName = (p) => cat.catById[p.category_id]?.name
 
@@ -276,22 +322,38 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
                 {q && <button className="search__clear" onClick={() => setQ('')} aria-label="Borrar búsqueda"><X size={18} /></button>}
               </div>
             </div>
-            <ul className="info-chips">
-              {deliveryOn && <li><Truck size={15} />{minZone === null ? 'Delivery' : minZone > 0 ? <>Delivery desde <b>{money(minZone, sym)}</b></> : <b>Delivery gratis</b>}</li>}
-              {pickupOn && <li><Store size={15} />Recojo en tienda</li>}
-              {s.address && (s.maps_url
-                ? <li><a href={s.maps_url} target="_blank" rel="noopener noreferrer"><MapPin size={15} />{s.address}</a></li>
-                : <li><MapPin size={15} />{s.address}</li>)}
-              {hours[0] && cat.sections.on('hours') && <li><Clock size={15} />{hours.map((h) => `${h.label} ${h.time}`).join(' · ')}</li>}
+            <ul className="meta meta2">
+              {deliveryOn && <li><Truck size={15} /><span>{minZone === null ? 'Delivery' : minZone > 0 ? <>Delivery desde <b>{money(minZone, sym)}</b></> : <b>Delivery gratis</b>}</span></li>}
+              {pickupOn && <li><Store size={15} /><span>Recojo en tienda</span></li>}
               {cat.payment_methods.length > 0 && (
-                <li className="info-chips__pay"><Wallet size={15} />
-                  {cat.payment_methods.map((m, i) => m.logo_url ? <img key={i} src={m.logo_url} alt={m.name} title={m.name} /> : <span key={i}>{m.name}</span>)}
+                <li className="meta2__pay"><Wallet size={15} />
+                  <span>{cat.payment_methods.slice(0, 4).map((m, i) => m.logo_url ? <img key={i} src={m.logo_url} alt={m.name} title={m.name} /> : <em key={i}>{m.name}</em>)}</span>
                 </li>
               )}
+              {cat.sections.on('howto') && <li><button className="meta__link" onClick={() => setHowOpen(true)}><MousePointerClick size={15} /> ¿Cómo comprar?</button></li>}
+              {hasInfo && <li><button className="meta__link" onClick={() => setInfoOpen(true)}><Info size={15} /> {showAddress ? 'Dirección y horario' : 'Información'}</button></li>}
               {s.whatsapp && (
-                <li><a className="is-wa" href={waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={15} />Escríbenos</a></li>
+                <li><a className="meta__link is-wa" href={waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={15} /> Escríbenos</a></li>
               )}
             </ul>
+            {picks && picks.items.length >= 2 && !words.length && (
+              <div className="picks">
+                <span className="picks__lbl"><Flame size={14} /> {picks.label}</span>
+                <div className="picks__row">
+                  {picks.items.map((p) => {
+                    const pi = priceInfo(p)
+                    const im = p.images?.[0]
+                    return (
+                      <button key={p.id} className="pick" onClick={() => openDetail(p)} aria-label={`Ver ${p.name}`}>
+                        {im ? <img src={im.thumb || im.full} alt="" width="30" height="30" /> : <span className="pick__ph">{p.name.slice(0, 1)}</span>}
+                        <span className="pick__name">{p.name}</span>
+                        {pi.price !== null && <b className="tnum">{money(pi.price, sym)}</b>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           {art.length >= 3 && (
             <div className="hero__art" aria-hidden="true">
@@ -338,7 +400,7 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
             <>
               {!words.length && (
                 <div className="section__head">
-                  <h2 className="section__title">{catId !== 'all' ? cat.catById[catId]?.name : 'Productos'}</h2>
+                  <h2 className="section__title">{catId !== 'all' ? groupName(catId) : 'Productos'}</h2>
                   <span className="count-pill tnum"><b>{visible.length}</b></span>
                 </div>
               )}
@@ -383,20 +445,11 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
             <div className="foot__cta-btns">
               {botReady && <button className="key key--lg" onClick={askHelp}><Bot size={18} /> Preguntarle a {cat.bot.name}</button>}
               {s.whatsapp && <a className="key key--wa key--lg" href={waLink(s.whatsapp, `👋 Hola, tengo una consulta sobre el catálogo de ${s.business_name}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /> WhatsApp</a>}
-            </div>
-          </div>
-          <div className="foot2__bottom">
-            <span className="foot2__id">
-              {s.logo_url && <img src={s.logo_url} alt="" className={s.logo_shape === 'round' ? 'is-round' : ''} />}
-              © {year} {s.business_name}
-            </span>
-            <span className="foot2__links">
-              {policyItems.length > 0 && <button onClick={() => setPolicyOpen(true)}>{policy.title || 'Políticas'}</button>}
               {social.map(([k, url]) => {
                 const Ic = SOCIAL_ICON[k] || ChevronRight
-                return <a key={k} className="key key--icon key--sm" href={url} target="_blank" rel="noopener noreferrer" aria-label={k}><Ic size={16} /></a>
+                return <a key={k} className="key key--icon" href={url} target="_blank" rel="noopener noreferrer" aria-label={k}><Ic size={18} /></a>
               })}
-            </span>
+            </div>
           </div>
         </div>
         <div className="bar-space" />
@@ -413,8 +466,14 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
         </button>
       )}
 
-      <ProductSheet p={detail} cat={cat} sym={sym} inCart={inCart} onClose={() => setDetail(null)}
-        onAdd={(v, qty, el) => { add({ ...v, product: detail }, el, qty); toast(`${detail.name} en tu carrito`); setTimeout(() => setDetail(null), 120) }} />
+      <ProductSheet p={detail} cat={cat} sym={sym} slug={slug} inCart={inCart} onClose={closeDetail} toast={toast}
+        onAdd={(v, qty, el) => { add({ ...v, product: detail }, el, qty); toast(`${detail.name} en tu carrito`); setTimeout(closeDetail, 120) }} />
+      <InfoSheet open={infoOpen} onClose={() => setInfoOpen(false)} cat={cat} sym={sym} status={status} hours={hours}
+        deliveryOn={deliveryOn} pickupOn={pickupOn} showAddress={showAddress} showHours={showHours} showSocial={social.length > 0} />
+      <Sheet open={howOpen} onClose={() => setHowOpen(false)} title="¿Cómo comprar?"
+        footer={<button className="key key--accent key--block key--lg" onClick={() => { setHowOpen(false); setTimeout(() => goTo('#catalogo-grid'), 250) }}>Ver productos <ChevronRight size={17} /></button>}>
+        <ol className="how">{howSteps.map((t, i) => <li key={i}><span className="tnum">{i + 1}</span><p>{t}</p></li>)}</ol>
+      </Sheet>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} summary={summary} cat={cat} sym={sym} dispatch={dispatch} slug={slug} toast={toast} preview={preview} />
       <Sheet open={policyOpen} onClose={() => setPolicyOpen(false)} title={policy?.title || 'Políticas y condiciones'}>
         <ul className="ticks">{policyItems.map((t, i) => <li key={i}><Check size={16} strokeWidth={2.6} />{t}</li>)}</ul>

@@ -27,15 +27,17 @@ const CARD_STYLES = [
 
 const SECTION_INFO = {
   hero: { name: 'Portada', desc: 'Nombre, frase, buscador y datos de entrega', fixed: true },
+  popular: { name: 'Lo más pedido', desc: 'Accesos en la portada a lo que más piden tus clientes' },
+  howto: { name: '¿Cómo comprar?', desc: 'Pasos cortos para hacer un pedido, armados con tu configuración' },
   featured: { name: 'Destacados', desc: 'Accesos rápidos a los productos marcados como destacados' },
   categories: { name: 'Filtro de categorías', desc: 'Botones para filtrar por categoría' },
   products: { name: 'Productos', desc: 'La grilla del catálogo', fixed: true },
   promos: { name: 'Promociones', desc: 'Próximamente', hidden: true },
-  hours: { name: 'Horario en el pie', desc: 'Muestra tus horarios al final' },
-  location: { name: 'Dirección en el pie', desc: 'Muestra tu dirección al final' },
+  hours: { name: 'Horario', desc: 'Tus horarios en la información del negocio' },
+  location: { name: 'Dirección', desc: 'Tu dirección y el enlace al mapa' },
   faq: { name: 'Preguntas frecuentes', desc: 'Las preguntas que cargues en la sección Bot' },
   policies: { name: 'Políticas y condiciones', desc: 'Cambios, garantía, devoluciones…', editable: true },
-  social: { name: 'Redes sociales', desc: 'Íconos de tus redes en el pie' },
+  social: { name: 'Redes sociales', desc: 'Tus redes junto al bloque de dudas' },
 }
 
 const MODULE_INFO = [

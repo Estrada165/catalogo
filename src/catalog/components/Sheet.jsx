@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 let openCount = 0
 
 // Hoja modal: sube desde abajo en móvil; centrada o lateral en escritorio
-export default function Sheet({ open, onClose, title, variant = 'center', children, footer, head, labelledBy, wide }) {
+export default function Sheet({ open, onClose, title, variant = 'center', children, footer, head, labelledBy, wide, hideTitle, className = '' }) {
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
   const panel = useRef(null)
@@ -47,13 +47,13 @@ export default function Sheet({ open, onClose, title, variant = 'center', childr
 
   if (!mounted) return null
   return createPortal(
-    <div className={`sheet-root${closing ? ' is-closing' : ''}${wide ? ' is-wide' : ''}`} data-v={variant}>
+    <div className={`sheet-root${closing ? ' is-closing' : ''}${wide ? ' is-wide' : ''}${className ? ` ${className}` : ''}`} data-v={variant}>
       <div className="sheet-backdrop" onClick={onClose} />
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby={labelledBy || 'sheet-title'} ref={panel} tabIndex={-1}>
         <div className="sheet__grab" aria-hidden="true" />
-        <div className="sheet__head">
+        <div className={`sheet__head${hideTitle ? ' sheet__head--float' : ''}`}>
           {head}
-          <h2 className="sheet__title" id={labelledBy || 'sheet-title'}>{title}</h2>
+          <h2 className={`sheet__title${hideTitle ? ' sr-only' : ''}`} id={labelledBy || 'sheet-title'}>{title}</h2>
           <button className="key key--icon key--sm" onClick={onClose} aria-label="Cerrar"><X size={18} /></button>
         </div>
         <div className="sheet__body">{children}</div>

@@ -62,7 +62,7 @@ export function buildIndex(cat) {
     cat: tokens(cat.catById[p.category_id]?.name || ''),
     attrs: Object.entries(p.attributes || {}).flatMap(([k, v]) => tokens(`${k} ${v}`)),
     variants: p.variants.flatMap((v) => tokens(v.label)),
-    desc: tokens(p.description).slice(0, 60),
+    desc: [...tokens(p.description), ...(p.details || []).flatMap((d) => d.items.flatMap(tokens))].slice(0, 90),
   }))
 }
 
