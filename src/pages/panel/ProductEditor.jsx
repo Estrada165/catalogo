@@ -4,9 +4,10 @@ import { removeImages, uploadProductImage } from '../../lib/images'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import Cropper from '../../components/Cropper'
-import { Crop, ListChecks, AlertTriangle, ListOrdered, StickyNote } from 'lucide-react'
+import { Crop, ListChecks, AlertTriangle, ListOrdered, StickyNote, Star } from 'lucide-react'
 import { IconClose, IconImage, IconPlus, IconTrash } from '../../components/icons'
 import { PosSelect, moveTo } from './ui'
+import Dropdown from '../../components/Dropdown'
 
 const UNITS = [
   { value: 'und', label: 'Unidad' },
@@ -304,8 +305,8 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
               {form.images.map((img, i) => (
                 <div key={img.path_full || img.full} className="image-tile">
                   <img src={img.thumb || img.full} alt="" />
-                  {i === 0 && <span className="image-tile__cover">Portada</span>}
-                  <PosSelect className="image-tile__pos" index={i} total={form.images.length} onChange={(to) => moveImage(i, to)} label="Orden de la foto" />
+                  {i === 0 && <span className="image-tile__cover" title="Portada"><Star size={11} fill="currentColor" /><span>Portada</span></span>}
+                  {form.images.length > 1 && <PosSelect className="image-tile__pos" index={i} total={form.images.length} onChange={(to) => moveImage(i, to)} label="Orden de la foto" />}
                   <div className="image-tile__actions">
                     <button type="button" onClick={() => setAdjusting(i)} aria-label="Ajustar foto" title="Ajustar"><Crop size={15} /></button>
                     <button type="button" onClick={() => removeImage(i)} aria-label="Quitar foto"><IconTrash width={15} height={15} /></button>
@@ -356,10 +357,8 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
               <span>Categoría</span>
               {newCat === null ? (
                 <div className="row">
-                  <select value={form.category_id} onChange={(e) => set({ category_id: e.target.value })}>
-                    <option value="">Sin categoría</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <Dropdown ariaLabel="Categoría" value={form.category_id} onChange={(v) => set({ category_id: v })}
+                    options={[{ value: '', label: 'Sin categoría' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]} />
                   <button type="button" className="btn btn--sm" onClick={() => setNewCat('')}><IconPlus width={16} height={16} /> Nueva</button>
                 </div>
               ) : (
@@ -421,9 +420,8 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                       <>
                         <label className="field">
                           <span>Se vende por</span>
-                          <select value={v.unit} onChange={(e) => setVariant(v.key, { unit: e.target.value })}>
-                            {UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
-                          </select>
+                          <Dropdown ariaLabel="Se vende por" value={v.unit} onChange={(u) => setVariant(v.key, { unit: u })}
+                            options={UNITS.map((u) => ({ value: u.value, label: u.label }))} />
                         </label>
                         <label className="field">
                           <span>Cantidad mínima</span>

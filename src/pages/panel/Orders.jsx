@@ -6,6 +6,7 @@ import { formatPrice } from '../../lib/utils'
 import { waUrl } from '../../lib/platform'
 import Loader from '../../components/Loader'
 import { IconClose, IconSearch, IconChat, IconTrash } from '../../components/icons'
+import Dropdown from '../../components/Dropdown'
 
 export const STATUS = {
   pendiente: { label: 'Pendiente', tone: 'warn' },
@@ -238,9 +239,8 @@ function OrderDrawer({ order: o, methods, businessName, onClose, onUpdate, onDel
               </div>
             ) : (
               <div className="pay-register">
-                <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                  {[...new Set([...methods.map((m) => m.name), 'Efectivo'])].map((n) => <option key={n}>{n}</option>)}
-                </select>
+                <Dropdown ariaLabel="Método de pago" value={payMethod} onChange={setPayMethod}
+                  options={[...new Set([...methods.map((m) => m.name), 'Efectivo'])].map((n) => ({ value: n, label: n }))} />
                 <input inputMode="decimal" placeholder="Monto" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
                 <button className="btn btn--primary btn--sm" onClick={() => onUpdate(o, { payment: { method: payMethod, amount: Number(String(payAmount).replace(',', '.')) || null, at: new Date().toISOString() } })}>Registrar pago</button>
               </div>

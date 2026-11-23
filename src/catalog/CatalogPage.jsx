@@ -25,6 +25,7 @@ import { StateScreen, LoadingScreen } from './components/StateScreens'
 import './styles/tokens.css'
 import './styles/catalog.css'
 import './styles/products.css'
+import Dropdown from '../components/Dropdown'
 
 const SORTS = [
   { key: 'default', label: 'Recomendados' },
@@ -84,7 +85,6 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const sym = s.currency_symbol
   const preview = cat.preview || embedded
   const [catId, setCatId] = useState('all')
-  const [spy, setSpy] = useState('all')
   const [q, setQ] = useState('')
   const [detail, setDetail] = useState(null)
   const [cartOpen, setCartOpen] = useState(false)
@@ -196,30 +196,6 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const qtyOf = (p) => (p.variants.length === 1 ? lines.find((l) => l.variantId === p.variants[0].id)?.qty || 0 : lines.filter((l) => p.variants.some((v) => v.id === l.variantId)).length)
   const inCart = (variantId) => lines.find((l) => l.variantId === variantId)?.qty || 0
 
-  // La barra de categorías sigue al scroll cuando están agrupadas
-  useEffect(() => {
-    if (!grouped) return
-    const els = [...document.querySelectorAll('[data-cat-section]')]
-    if (!els.length) return
-    // Marca la última sección cuyo inicio ya pasó el 40% de la pantalla; si ninguna, "Todo"
-    let raf = 0
-    const calc = () => {
-      raf = 0
-      const line = innerHeight * 0.4
-      let cur = 'all'
-      for (const el of els) if (el.getBoundingClientRect().top <= line) cur = el.dataset.catSection
-      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 60) {
-        const last = els[els.length - 1]
-        if (last.getBoundingClientRect().top < innerHeight) cur = last.dataset.catSection
-      }
-      setSpy(cur)
-    }
-    const on = () => { if (!raf) raf = requestAnimationFrame(calc) }
-    addEventListener('scroll', on, { passive: true })
-    calc()
-    return () => { removeEventListener('scroll', on); cancelAnimationFrame(raf) }
-  }, [grouped, groups.length])
-
   const cartTarget = () => (cartBarBtn.current?.offsetParent ? cartBarBtn.current : cartBtn.current)
   const land = () => { bump(cartTarget()); haptic() }
   const add = (v, fromEl, qty) => {
@@ -262,11 +238,10 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
   const pickCat = (id) => {
     haptic(8)
     if (words.length) setQ('')
-    if (grouped || (id !== 'all' && catId === 'all' && showCats)) {
-      setCatId('all')
-      setSpy(id)
-      setTimeout(() => goTo(id === 'all' ? '#catalogo-grid' : `[data-cat-section="${id}"]`), 30)
-    } else setCatId(id)
+    // Elegir una categoría muestra solo sus productos; "Todo" vuelve a la vista por categorías
+    setCatId(id)
+    const grid = document.getElementById('catalogo-grid')
+    if (grid && grid.getBoundingClientRect().top < 0) setTimeout(() => goTo('#catalogo-grid'), 30)
   }
 
   const status = openStatus(s.hours)
@@ -424,20 +399,15 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
         {showCats && (
           <div className="ctrl" id="catalogo">
             <div className="wrap ctrl__in">
-              <CategoryNav cats={navCats} total={cat.products.length} active={grouped ? spy : catId} onPick={pickCat} />
+              <CategoryNav cats={navCats} total={cat.products.length} active={catId} onPick={pickCat} />
             </div>
           </div>
         )}
 
         {showTools && (
           <div className="wrap tools">
-            <label className="tools__sort">
-              <ArrowUpDown size={15} />
-              <span className="sr-only">Ordenar</span>
-              <select value={sort} onChange={(e) => { setSort(e.target.value); haptic(8) }}>
-                {SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-              </select>
-            </label>
+            <Dropdown className="dd--pill" ariaLabel="Ordenar" icon={<ArrowUpDown size={15} />} value={sort} onChange={(v) => { setSort(v); haptic(8) }}
+              options={SORTS.map((o) => ({ value: o.key, label: o.label }))} />
             <button className={`tools__btn${activeFilters ? ' is-on' : ''}`} onClick={() => setFiltersOpen(true)}>
               <SlidersHorizontal size={15} /> Filtros{activeFilters > 0 && <em className="tnum">{activeFilters}</em>}
             </button>
@@ -469,7 +439,7 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
               <div key={g.id} className="cat-block" data-cat-section={g.id}>
                 <div className="section__head">
                   <h2 className="section__title">{g.name}</h2>
-                  <span className="count-pill tnum"><b>{g.items.length}</b></span>
+                  {showCats && <button className="section__more" onClick={() => pickCat(g.id)}>Ver solo {g.name.toLowerCase()} <ChevronRight size={15} /></button>}
                 </div>
                 <div className="grid grid--pc">{g.items.map((p, i) => card(p, gi * 4 + i))}</div>
               </div>
@@ -479,7 +449,7 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
               {!words.length && (
                 <div className="section__head">
                   <h2 className="section__title">{catId !== 'all' ? groupName(catId) : 'Productos'}</h2>
-                  <span className="count-pill tnum"><b>{visible.length}</b></span>
+                  {catId !== 'all' && <button className="section__more" onClick={() => pickCat('all')}>Ver todo <ChevronRight size={15} /></button>}
                 </div>
               )}
               <div className="grid grid--pc">{visible.map((p, i) => card(p, i))}</div>

@@ -545,3 +545,6 @@ html.lu-open .cover--page { right: 400px; }
 }
 .span-page ~ * .count-pill, .span-page ~ .section .count-pill { background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
 .span-page ~ .ctrl { background: color-mix(in oklab, var(--bg) 60%, transparent); }
+.section__more { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 700; color: var(--accent-text); white-space: nowrap; padding: 6px 2px; transition: gap .2s var(--ease); }
+.section__more:hover { gap: 5px; }
+@media (max-width: 519px) { .section__more { font-size: 12.5px; } }

@@ -4,6 +4,7 @@ import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import { IconClose, IconEdit, IconPlus, IconTrash } from '../../components/icons'
 import { Field } from '../panel/ui'
+import Dropdown from '../../components/Dropdown'
 
 const MODULES = [
   ['stock', 'Control de stock'], ['peso', 'Venta por peso o medida'], ['delivery', 'Delivery'], ['pedidos', 'Registro de pedidos'],
@@ -144,8 +145,8 @@ function RubroEditor({ form, isNew, onClose, onSave }) {
             <h3 className="form-block__title">Estilo por defecto</h3>
             <div className="form-grid">
               <Field label="Color"><input type="color" value={f.accent} onChange={(e) => set({ accent: e.target.value.toUpperCase() })} /></Field>
-              <Field label="Estilo"><select value={f.style} onChange={(e) => set({ style: e.target.value })}>{STYLES.map((s) => <option key={s}>{s}</option>)}</select></Field>
-              <Field label="Modo"><select value={f.mode} onChange={(e) => set({ mode: e.target.value })}><option value="auto">Según el dispositivo</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></Field>
+              <Field label="Estilo"><Dropdown ariaLabel="Estilo" value={f.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1) }))} /></Field>
+              <Field label="Modo"><Dropdown ariaLabel="Modo" value={f.mode} onChange={(v) => set({ mode: v })} options={[{ value: 'auto', label: 'Según el dispositivo' }, { value: 'light', label: 'Claro' }, { value: 'dark', label: 'Oscuro' }]} /></Field>
             </div>
           </section>
 

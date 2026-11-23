@@ -9,6 +9,7 @@ import Switch from '../../components/Switch'
 import ProductEditor from './ProductEditor'
 import Categories from './Categories'
 import { IconEdit, IconPlus, IconSearch, IconTrash, IconStar } from '../../components/icons'
+import Dropdown from '../../components/Dropdown'
 
 function priceRange(variants) {
   const prices = variants.map((v) => v.price).filter((p) => p !== null)
@@ -126,11 +127,8 @@ export default function Products() {
               <IconSearch />
               <input placeholder="Buscar por nombre, palabra clave o código" value={query} onChange={(e) => setQuery(e.target.value)} />
             </label>
-            <select className="select" value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
-              <option value="all">Todas las categorías</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              <option value="none">Sin categoría</option>
-            </select>
+            <Dropdown className="dd--filter" ariaLabel="Filtrar por categoría" value={catFilter} onChange={setCatFilter}
+              options={[{ value: 'all', label: 'Todas las categorías' }, ...categories.map((c) => ({ value: c.id, label: c.name })), { value: 'none', label: 'Sin categoría' }]} />
           </div>
 
           {!products ? (

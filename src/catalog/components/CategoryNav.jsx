@@ -54,13 +54,13 @@ export default function CategoryNav({ cats, active, onPick, total }) {
       <div className="catnav__track" ref={scroller} onScroll={() => setEdge({ l: scroller.current.scrollLeft > 4, r: scroller.current.scrollLeft + scroller.current.clientWidth < scroller.current.scrollWidth - 4 })} role="group" aria-label="Categorías">
         {ind && <span className="catnav__ind" style={{ transform: `translateX(${ind.x}px)`, width: ind.w }} aria-hidden="true" />}
         <button className="catnav__btn" aria-pressed={active === 'all'} onClick={() => onPick('all')}>
-          <LayoutGrid size={16} /><span>Todo</span><em>{total}</em>
+          <LayoutGrid size={16} /><span>Todo</span>
         </button>
         {cats.map((c) => {
           const Icon = iconFor(c.name)
           return (
             <button key={c.id} className="catnav__btn" aria-pressed={active === c.id} onClick={() => onPick(c.id)}>
-              <Icon size={16} /><span>{c.name}</span><em>{c.count}</em>
+              <Icon size={16} /><span>{c.name}</span>
             </button>
           )
         })}

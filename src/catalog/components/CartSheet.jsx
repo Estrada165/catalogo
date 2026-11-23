@@ -6,6 +6,7 @@ import { getSessionId } from '../../lib/utils'
 import { buildOrderMessage, fmtQty, waLink } from '../lib/cart'
 import { money, store } from '../lib/format'
 import { copyText } from '../lib/clipboard'
+import Dropdown from '../../components/Dropdown'
 
 const isTouch = () => window.matchMedia?.('(pointer: coarse)').matches
 
@@ -175,12 +176,8 @@ export default function CartSheet({ open, onClose, summary, cat, sym, dispatch, 
       {form.delivery === 'delivery' && cat.zones.length > 0 && (
         <div className="field">
           <label htmlFor="ck-zone">Zona</label>
-          <select id="ck-zone" value={form.zone_id} onChange={set('zone_id')}>
-            <option value="">Elige tu zona</option>
-            {cat.zones.map((z) => (
-              <option key={z.id} value={z.id}>{z.name} · {Number(z.cost) > 0 ? money(z.cost, sym) : 'Gratis'}</option>
-            ))}
-          </select>
+          <Dropdown id="ck-zone" ariaLabel="Zona de delivery" placeholder="Elige tu zona" value={form.zone_id} onChange={(v) => set('zone_id')({ target: { value: v } })}
+            options={cat.zones.map((z) => ({ value: z.id, label: z.name, hint: Number(z.cost) > 0 ? `Delivery ${money(z.cost, sym)}` : 'Delivery gratis' }))} />
         </div>
       )}
       {form.delivery === 'delivery' && ck.ask_address !== false && (

@@ -7,6 +7,7 @@ import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import { IconExternal } from '../../components/icons'
 import { Field, ImagePicker, PosSelect, SaveBar, Section, Tabs, moveTo, useDraft, useSaver } from './ui'
+import Dropdown from '../../components/Dropdown'
 
 const ACCENTS = ['#FF6B35', '#F5B700', '#2BB673', '#1E88E5', '#7C4DFF', '#E86A92', '#E53935', '#C9A96E', '#00A3A3', '#121316']
 
@@ -226,16 +227,12 @@ export default function Appearance() {
                 </div>
                 <div className="form-grid">
                   <Field label="Tipografía de títulos">
-                    <select value={d.theme.font_display || ''} onChange={(e) => theme({ font_display: e.target.value || undefined })}>
-                      <option value="">Según el estilo</option>
-                      {DISPLAY_FONTS.map((k) => <option key={k} value={k}>{FONTS[k].name} · {FONTS[k].style}</option>)}
-                    </select>
+                    <Dropdown ariaLabel="Tipografía de títulos" value={d.theme.font_display || ''} onChange={(v) => theme({ font_display: v || undefined })}
+                      options={[{ value: '', label: 'Según el estilo' }, ...DISPLAY_FONTS.map((k) => ({ value: k, label: FONTS[k].name, hint: FONTS[k].style }))]} />
                   </Field>
                   <Field label="Tipografía de textos">
-                    <select value={d.theme.font_body || ''} onChange={(e) => theme({ font_body: e.target.value || undefined, font_cards: e.target.value || undefined })}>
-                      <option value="">Según el estilo</option>
-                      {BODY_FONTS.map((k) => <option key={k} value={k}>{FONTS[k].name} · {FONTS[k].style}</option>)}
-                    </select>
+                    <Dropdown ariaLabel="Tipografía de textos" value={d.theme.font_body || ''} onChange={(v) => theme({ font_body: v || undefined, font_cards: v || undefined })}
+                      options={[{ value: '', label: 'Según el estilo' }, ...BODY_FONTS.map((k) => ({ value: k, label: FONTS[k].name, hint: FONTS[k].style }))]} />
                   </Field>
                 </div>
                 <Field label={`Redondeo de esquinas · ${d.theme.radius || 18}px`}>

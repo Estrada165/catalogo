@@ -5,6 +5,7 @@ import { formatDate } from '../../lib/utils'
 import { waUrl, fillTemplate, planVars } from '../../lib/platform'
 import Switch from '../../components/Switch'
 import { IconClose } from '../../components/icons'
+import Dropdown from '../../components/Dropdown'
 
 const DAY = 86400000
 const CYCLES = [15, 30, 60, 90, 180, 365]
@@ -143,11 +144,11 @@ export default function TenantEditor({ tenant, template, onClose, onSaved }) {
             </div>
             <label className="field">
               <span>Estado</span>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="pendiente">Pendiente (aún no activo)</option>
-                <option value="activo">Activo</option>
-                <option value="suspendido">Suspendido</option>
-              </select>
+              <Dropdown ariaLabel="Estado" value={status} onChange={setStatus} options={[
+                { value: 'pendiente', label: 'Pendiente', hint: 'Aún no activo' },
+                { value: 'activo', label: 'Activo', hint: 'Su catálogo está publicado' },
+                { value: 'suspendido', label: 'Suspendido', hint: 'Catálogo y panel bloqueados' },
+              ]} />
             </label>
           </section>
 
