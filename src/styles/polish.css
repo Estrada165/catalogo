@@ -506,3 +506,10 @@ h2.display { font-size: 1.3rem; }
   .toolbar .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
   .toolbar .segmented button { white-space: nowrap; flex-shrink: 0; }
 }
+
+/* Portada en Apariencia */
+.img-picker--wide .img-picker__box { width: 100%; max-width: 420px; height: auto; aspect-ratio: 16 / 9; }
+.img-picker--wide .img-picker__box img { object-fit: cover; }
+.cover-color { display: flex; align-items: center; gap: 10px; }
+.cover-color input[type='color'] { width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: none; cursor: pointer; }
+.cover-color code { font-size: .85rem; color: var(--text-2); }

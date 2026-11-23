@@ -6,7 +6,7 @@ import { FONTS } from '../../catalog/lib/fonts'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import { IconArrowDown, IconArrowUp, IconExternal } from '../../components/icons'
-import { Field, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
+import { Field, ImagePicker, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
 
 const ACCENTS = ['#FF6B35', '#F5B700', '#2BB673', '#1E88E5', '#7C4DFF', '#E86A92', '#E53935', '#C9A96E', '#00A3A3', '#121316']
 
@@ -98,6 +98,9 @@ export default function Appearance() {
   if (!d) return <div className="page"><Loader /></div>
 
   const theme = (patch) => set({ theme: { ...d.theme, ...patch } })
+  const cover = d.theme.cover || {}
+  const setCover = (patch) => theme({ cover: { ...cover, ...patch } })
+  const coverMode = cover.mode || 'none'
   const sec = (type, patch) => set({ sections: d.sections.map((s) => (s.type === type ? { ...s, ...patch } : s)) })
   const move = (i, dir) => {
     const arr = [...d.sections]
@@ -142,6 +145,58 @@ export default function Appearance() {
                     </button>
                   ))}
                 </div>
+              </Section>
+
+              <Section tour="portada" title="Portada" hint="Opcional. Una imagen o un degradado detrás de tu logo y nombre. Las tarjetas de productos no cambian.">
+                <div className="option-grid option-grid--3">
+                  {[['none', 'Sin portada', 'Fondo liso'], ['image', 'Imagen', 'Foto con difuminado'], ['gradient', 'Degradado', 'Con tus colores']].map(([k, n, h]) => (
+                    <button key={k} className={`option-card ${coverMode === k ? 'is-on' : ''}`} onClick={() => setCover({ mode: k })}>
+                      <strong>{n}</strong><small>{h}</small>
+                    </button>
+                  ))}
+                </div>
+                {coverMode === 'image' && (
+                  <>
+                    <ImagePicker wide tenantId={tenant.id} folder="brand" value={cover.image} size={1800} label="Subir imagen de portada"
+                      crop={{ aspect: 16 / 9, fit: false, title: 'Ajusta tu portada', subtitle: 'En computadora se ve a la derecha; en celular, arriba. Deja lo importante al centro.' }}
+                      onChange={(img) => setCover({ image: img?.url || null })} />
+                    <Field label={`Intensidad · ${cover.strength || 80}%`}>
+                      <input type="range" min={20} max={100} step={5} value={cover.strength || 80} onChange={(e) => setCover({ strength: Number(e.target.value) })} />
+                    </Field>
+                    <div className="field">
+                      <span>Enfoque</span>
+                      <div className="segmented">
+                        {[['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']].map(([k, l]) => (
+                          <button key={k} className={(cover.focus || 'center') === k ? 'is-active' : ''} onClick={() => setCover({ focus: k })}>{l}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <Switch checked={!!cover.blur} onChange={(v) => setCover({ blur: v })} label="Difuminar la imagen (más suave, ideal si tiene texto o mucho detalle)" />
+                  </>
+                )}
+                {coverMode === 'gradient' && (
+                  <>
+                    <div className="form-grid">
+                      <Field label="Color 1">
+                        <div className="cover-color"><input type="color" value={cover.color1 || d.theme.accent} onChange={(e) => setCover({ color1: e.target.value.toUpperCase() })} /><code>{cover.color1 || d.theme.accent}</code></div>
+                      </Field>
+                      <Field label="Color 2">
+                        <div className="cover-color"><input type="color" value={cover.color2 || '#8B7DFF'} onChange={(e) => setCover({ color2: e.target.value.toUpperCase() })} /><code>{cover.color2 || '#8B7DFF'}</code></div>
+                      </Field>
+                    </div>
+                    <div className="field">
+                      <span>Forma</span>
+                      <div className="segmented">
+                        {[['aurora', 'Aurora'], ['diagonal', 'Diagonal']].map(([k, l]) => (
+                          <button key={k} className={(cover.shape || 'aurora') === k ? 'is-active' : ''} onClick={() => setCover({ shape: k })}>{l}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <Field label={`Intensidad · ${cover.strength || 80}%`}>
+                      <input type="range" min={20} max={100} step={5} value={cover.strength || 80} onChange={(e) => setCover({ strength: Number(e.target.value) })} />
+                    </Field>
+                  </>
+                )}
               </Section>
 
               <Section title="Modo">

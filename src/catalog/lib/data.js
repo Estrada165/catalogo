@@ -40,6 +40,21 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
     accent: theme.accent || '#FF6B35',
     theme_default: theme.mode === 'auto' || !theme.mode ? 'system' : theme.mode,
     radius: theme.radius || 18,
+    // Portada opcional: imagen (con difuminado) o degradado con tus colores
+    cover: (() => {
+      const c = theme.cover || {}
+      const mode = c.mode === 'image' && c.image ? 'image' : c.mode === 'gradient' ? 'gradient' : 'none'
+      return {
+        mode,
+        image: c.image || null,
+        strength: Math.min(100, Math.max(20, Number(c.strength) || 80)),
+        blur: !!c.blur,
+        focus: ['left', 'center', 'right'].includes(c.focus) ? c.focus : 'center',
+        color1: c.color1 || theme.accent || '#18181B',
+        color2: c.color2 || '#8B7DFF',
+        shape: c.shape === 'diagonal' ? 'diagonal' : 'aurora',
+      }
+    })(),
     card_style: theme.card_style || style.card_style,
     font_display: theme.font_display || style.display,
     font_body: theme.font_body || style.body,

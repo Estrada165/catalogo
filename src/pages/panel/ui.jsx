@@ -82,7 +82,7 @@ export function useSaver(fn) {
   return { saving, error, saved, run }
 }
 
-export function ImagePicker({ tenantId, folder, value, onChange, size = 512, label = 'Subir imagen', round = false, crop = {}, small = false }) {
+export function ImagePicker({ tenantId, folder, value, onChange, size = 512, label = 'Subir imagen', round = false, crop = {}, small = false, wide = false }) {
   const input = useRef(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -102,7 +102,7 @@ export function ImagePicker({ tenantId, folder, value, onChange, size = 512, lab
   }
 
   return (
-    <div className={`img-picker ${small ? 'img-picker--sm' : ''}`}>
+    <div className={`img-picker ${small ? 'img-picker--sm' : ''}${wide ? ' img-picker--wide' : ''}`}>
       <button type="button" className={`img-picker__box ${round ? 'is-round' : ''} ${value ? 'has-img' : ''}`} onClick={() => input.current?.click()} aria-label={value ? 'Cambiar imagen' : label}>
         {busy ? <Loader /> : value ? <img src={value} alt="" /> : <><IconImage /><small>{label}</small></>}
       </button>

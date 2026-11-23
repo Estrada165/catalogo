@@ -336,6 +336,15 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
       </header>
 
       <main id="top">
+        <div className={`hero-wrap${s.cover.mode !== 'none' ? ` has-cover cover-${s.cover.mode}` : ''}`}>
+        {s.cover.mode === 'image' && (
+          <div className={`cover cover--img is-${s.cover.focus}${s.cover.blur ? ' is-blur' : ''}`} style={{ '--cover-op': s.cover.strength / 100 }} aria-hidden="true">
+            <img src={s.cover.image} alt="" fetchpriority="high" decoding="async" />
+          </div>
+        )}
+        {s.cover.mode === 'gradient' && (
+          <div className={`cover cover--grad is-${s.cover.shape}`} style={{ '--c1': s.cover.color1, '--c2': s.cover.color2, '--cover-op': s.cover.strength / 100 }} aria-hidden="true" />
+        )}
         <section className="hero hero2 wrap">
           <div className="hero__main">
             <div className="hero2__id">
@@ -395,12 +404,13 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
               </div>
             )}
           </div>
-          {art.length >= 3 && (
+          {art.length >= 3 && s.cover.mode !== 'image' && (
             <div className="hero__art" aria-hidden="true">
               {art.map((p, i) => <img key={p.id} src={p.images[0].thumb || p.images[0].full} alt="" width="84" height="84" style={{ '--i': i }} />)}
             </div>
           )}
         </section>
+        </div>
 
         {featured.length > 0 && !words.length && !filtering && (
           <section className="section wrap feat" aria-labelledby="feat-title">
