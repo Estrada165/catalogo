@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { takePrefetch } from '../../lib/prefetch'
 
 // Estilo de cada plantilla → tipografías y tipo de tarjeta por defecto
 const STYLE_DEFAULTS = {
@@ -178,7 +179,39 @@ export const facetValue = (p, key) => {
 }
 export { fold }
 
+// Última versión vista del catálogo: se muestra al instante y luego se actualiza
+const SNAP = (slug) => `cat-snap:${slug}`
+export function readSnapshot(slug) {
+  try {
+    const s = JSON.parse(localStorage.getItem(SNAP(slug)) || 'null')
+    if (!s || Date.now() - s.t > 7 * 86400000) return null
+    return { state: 'ok', preview: false, raw: s.raw, cached: true, ...normalizeCatalog(s.raw) }
+  } catch { return null }
+}
+function writeSnapshot(slug, raw) {
+  try { localStorage.setItem(SNAP(slug), JSON.stringify({ t: Date.now(), raw })) } catch { /* sin espacio: no pasa nada */ }
+}
+export function dropSnapshot(slug) {
+  try { localStorage.removeItem(SNAP(slug)) } catch { /* nada */ }
+}
+
+const isLive = (t) => t.status === 'activo' && (!t.expires_at || new Date(t.expires_at) > new Date())
+
 export async function fetchCatalog(slug) {
+  // Todo en un solo viaje (migración 011); si la función aún no existe, se usa el camino anterior
+  const { data: one, error: e1 } = await (takePrefetch(slug) || supabase.rpc('get_catalog', { p_slug: slug }))
+  if (!e1 && one?.state) {
+    if (one.state === 'moved') return { state: 'moved', slug: one.slug }
+    if (one.state !== 'ok') { dropSnapshot(slug); return null }
+    const raw = { tenant: one.tenant, config: one.config, categories: one.categories, products: one.products, zones: one.zones, faqs: one.faqs, popular: one.popular || [] }
+    const live = isLive(one.tenant)
+    if (live) writeSnapshot(slug, raw)
+    return { state: 'ok', preview: !live, raw, ...normalizeCatalog(raw) }
+  }
+  return fetchCatalogLegacy(slug)
+}
+
+async function fetchCatalogLegacy(slug) {
   const { data: tenant, error } = await supabase
     .from('tenants')
     .select('id, slug, name, status, expires_at')
@@ -203,7 +236,7 @@ export async function fetchCatalog(slug) {
   const failed = [cfg, cats, prods].find((r) => r.error)
   if (failed) throw failed.error
 
-  const live = tenant.status === 'activo' && (!tenant.expires_at || new Date(tenant.expires_at) > new Date())
+  const live = isLive(tenant)
   const raw = { tenant, config: cfg.data, categories: cats.data, products: prods.data, zones: zones.data, faqs: faqs.data, popular: Array.isArray(pop?.data) ? pop.data : [] }
   // Si el negocio no está activo y aun así lo vemos, es su dueño (o el superadmin) en vista previa
   return { state: 'ok', preview: !live, raw, ...normalizeCatalog(raw) }

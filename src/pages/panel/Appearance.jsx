@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Sun, Moon, Smartphone, Monitor } from 'lucide-react'
+import { Sun, Moon, Smartphone, Monitor, Square, Image as ImageIcon, Blend } from 'lucide-react'
 import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { FONTS } from '../../catalog/lib/fonts'
@@ -144,9 +144,10 @@ export default function Appearance() {
 
               <Section tour="portada" title="Portada" hint="Opcional. Una imagen o un degradado detrás de tu logo y nombre. Las tarjetas de productos no cambian.">
                 <div className="option-grid option-grid--3">
-                  {[['none', 'Sin portada', 'Fondo liso'], ['image', 'Imagen', 'Foto con difuminado'], ['gradient', 'Degradado', 'Con tus colores']].map(([k, n, h]) => (
-                    <button key={k} className={`option-card ${coverMode === k ? 'is-on' : ''}`} onClick={() => setCover({ mode: k })}>
-                      <strong>{n}</strong><small>{h}</small>
+                  {[['none', 'Sin portada', 'Fondo liso', Square], ['image', 'Imagen', 'Foto con difuminado', ImageIcon], ['gradient', 'Degradado', 'Con tus colores', Blend]].map(([k, n, h, Ic]) => (
+                    <button key={k} className={`option-card option-card--icon ${coverMode === k ? 'is-on' : ''}`} onClick={() => setCover({ mode: k })}>
+                      <span className="option-card__ic"><Ic size={18} /></span>
+                      <span className="option-card__txt"><strong>{n}</strong><small>{h}</small></span>
                     </button>
                   ))}
                 </div>
@@ -207,7 +208,7 @@ export default function Appearance() {
 
               <Section title="Modo">
                 <div className="segmented">
-                  {[['auto', 'Según el dispositivo'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([k, l]) => (
+                  {[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([k, l]) => (
                     <button key={k} className={(d.theme.mode || 'auto') === k ? 'is-active' : ''} onClick={() => theme({ mode: k })}>{l}</button>
                   ))}
                 </div>

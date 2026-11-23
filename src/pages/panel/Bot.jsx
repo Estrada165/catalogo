@@ -71,7 +71,7 @@ export default function Bot() {
           {faqs.length === 0 ? <p className="muted">Aún no tienes preguntas frecuentes.</p> : (
             <ul className="cat-list">
               {faqs.map((f, i) => (
-                <li key={f.id} className={`section-row ${f.active ? '' : 'is-hidden'}`}>
+                <li key={f.id} className={`section-row faq-row ${f.active ? '' : 'is-hidden'}`}>
                   <div className="cat-row__order">
                     <PosSelect index={i} total={faqs.length} onChange={(to) => move(i, to)} label="Orden" />
                   </div>

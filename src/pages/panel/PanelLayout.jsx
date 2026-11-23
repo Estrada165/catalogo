@@ -74,19 +74,24 @@ function PlanCard({ tenant, contact, compact = false }) {
 }
 
 export default function PanelLayout() {
-  const { tenant, user, signOut } = useAuth()
+  const { tenant, user, signOut, tenantConfig, cacheConfig } = useAuth()
   const { pathname } = useLocation()
-  const [config, setConfig] = useState(null)
+  const [config, setConfig] = useState(() => (tenantConfig && tenantConfig.tenant_id === tenant?.id ? tenantConfig : null))
   const [contact, setContact] = useState(null)
   const [more, setMore] = useState(false)
 
+  const tenantId = tenant?.id
   const reloadConfig = useCallback(async () => {
-    if (!tenant) return
-    const { data } = await supabase.from('tenant_config').select('*').eq('tenant_id', tenant.id).maybeSingle()
+    if (!tenantId) return
+    const { data } = await supabase.from('tenant_config').select('*').eq('tenant_id', tenantId).maybeSingle()
     setConfig(data)
-  }, [tenant])
+  }, [tenantId])
 
-  useEffect(() => { reloadConfig() }, [reloadConfig])
+  // La configuración ya llega junto con el negocio; solo se pide aparte si no vino
+  useEffect(() => {
+    if (tenantConfig && tenantConfig.tenant_id === tenantId) setConfig(tenantConfig)
+    else if (tenantConfig === undefined) reloadConfig()
+  }, [tenantConfig, tenantId, reloadConfig])
   useEffect(() => { getContact().then(setContact) }, [])
   useEffect(() => { setMore(false) }, [pathname])
   useAutoTour(user?.id, guideForPath(pathname), !!config)
@@ -98,6 +103,7 @@ export default function PanelLayout() {
       const { data, error } = await supabase.from('tenant_config').update(patch).eq('tenant_id', tenant.id).select().single()
       if (error) throw error
       setConfig(data)
+      cacheConfig(data)
       // Logo, foto de Lu o QR de pago reemplazados: se borra el archivo anterior
       if (before) {
         const keys = Object.keys(patch)

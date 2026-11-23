@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getSessionId } from '../lib/utils'
-import { fetchCatalog, normalizeCatalog, facetValue, fold } from './lib/data'
+import { fetchCatalog, normalizeCatalog, facetValue, fold, readSnapshot } from './lib/data'
 import { cartReducer, summarize, waLink } from './lib/cart'
 import { money, store } from './lib/format'
 import { applyPalette } from './lib/color'
@@ -43,18 +43,20 @@ export default function CatalogPage() {
   const { slug: rawSlug } = useParams()
   const slug = String(rawSlug || '').toLowerCase()
   const navigate = useNavigate()
-  const [cat, setCat] = useState(undefined)
+  const isPreviewUrl = useMemo(() => new URLSearchParams(location.search).has('preview'), [])
+  const [cat, setCat] = useState(() => (isPreviewUrl ? undefined : readSnapshot(slug) || undefined))
 
   useEffect(() => {
     let alive = true
-    setCat(undefined)
+    // Muestra al instante la última versión guardada (si hay) y la actualiza por detrás
+    setCat((cur) => (cur?.raw?.tenant?.slug === slug ? cur : isPreviewUrl ? undefined : readSnapshot(slug) || undefined))
     fetchCatalog(slug)
       .then((d) => {
         if (!alive) return
         if (d?.state === 'moved') navigate(`/${d.slug}${location.search}`, { replace: true })
         else setCat(d)
       })
-      .catch(() => alive && setCat({ state: 'error' }))
+      .catch(() => alive && setCat((cur) => (cur?.state === 'ok' ? cur : { state: 'error' })))
     return () => { alive = false }
   }, [slug, navigate])
 

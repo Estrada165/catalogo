@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import { APP_NAME } from './lib/supabase'
+import { startPrefetch } from './lib/prefetch'
+
+startPrefetch()
 
 document.title = APP_NAME
 

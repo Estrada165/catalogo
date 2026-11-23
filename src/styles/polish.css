@@ -640,3 +640,67 @@ h2.display { font-size: 1.3rem; }
 /* Ventanas laterales: el cuerpo es lo único que se desplaza (el encabezado y el pie nunca se mueven) */
 .drawer__panel { overflow: clip; }
 .drawer__body { min-height: 0; }
+
+/* ════════ Revisión de celular ════════ */
+/* Barra superior: el contador de días nunca se parte */
+.plan-chip { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 380px) { .plan-chip { padding: 0 8px; font-size: .74rem; } .plan-chip svg { width: 14px; height: 14px; } }
+/* Buscadores: el campo no lleva su propio fondo dentro de la cajita */
+.search input, .search input:focus { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; height: auto; min-width: 0; }
+/* Montos que no se parten ("S/" y el número juntos) */
+.order-items strong, .product-row__price, .stat strong, .rc-row__total { white-space: nowrap; }
+.order-items li { gap: 12px; }
+/* Portada: tarjetas con ícono; en celular, una debajo de otra */
+.option-card--icon { display: flex; align-items: center; gap: 12px; text-align: left; }
+.option-card__ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); }
+.option-card--icon.is-on .option-card__ic { background: var(--text); color: var(--bg); border-color: var(--text); }
+.option-card__txt { display: grid; gap: 2px; min-width: 0; }
+@media (max-width: 640px) {
+  .option-grid--3 { grid-template-columns: 1fr !important; gap: 8px; }
+  .option-grid--3 .option-card { padding: 12px 14px; }
+}
+/* Preguntas de Lu: texto arriba a lo ancho, acciones abajo */
+@media (max-width: 560px) {
+  .faq-row { display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'pos info info info' 'pos sw edit del'; gap: 10px 8px; align-items: start; }
+  .faq-row > :nth-child(1) { grid-area: pos; }
+  .faq-row > :nth-child(2) { grid-area: info; }
+  .faq-row > :nth-child(3) { grid-area: sw; justify-self: start; align-self: center; }
+  .faq-row > :nth-child(4) { grid-area: edit; }
+  .faq-row > :nth-child(5) { grid-area: del; }
+}
+/* Productos: interruptores y botones ordenados en una sola fila que se acomoda */
+@media (max-width: 560px) {
+  .product-row__actions { display: grid !important; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 8px; width: 100%; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .product-row__actions .switch { font-size: .82rem; }
+  .product-row__actions .icon-btn:first-of-type { grid-column: 4; }
+}
+/* Horario: días arriba; horas a lo ancho, con el tacho al lado */
+@media (max-width: 560px) {
+  .hours-row { display: grid; gap: 10px; }
+  .hours-row .row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .hours-row input[type='time'] { padding: 9px 6px; font-size: .86rem; min-width: 0; width: 100%; }
+  .day-picks button { width: auto; min-width: 40px; flex: 1; }
+}
+/* Tarjetas de números: de a dos en celular */
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
+  .stats .stat { padding: 14px; }
+  .stats .stat strong { font-size: 1.45rem; }
+  .stats .stat small { font-size: .72rem; }
+}
+/* Modo (claro/oscuro) y segmentos: sin cortar palabras */
+.segmented button { white-space: nowrap; }
+.section-row__edit { min-width: 0; max-width: 100%; }
+.section-row__edit input, .section-row__edit textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 560px) { .section-row:has(.section-row__edit) { flex-wrap: wrap; } .section-row:has(.section-row__edit) .section-row__info { flex: 1 1 100%; order: 3; } }
+@media (max-width: 560px) {
+  .day-picks { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .day-picks button { min-width: 0; width: 100%; padding: 0; font-size: .74rem; height: 34px; }
+  .hours-row .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'open close' 'del del'; }
+  .hours-row .row > input:first-of-type { grid-area: open; }
+  .hours-row .row > input:last-of-type { grid-area: close; }
+  .hours-row .row > .muted { display: none; }
+  .hours-row .row > .icon-btn { grid-area: del; justify-self: end; width: auto; height: 32px; padding: 0 12px; display: inline-flex; align-items: center; }
+  .hours-row .row > .icon-btn::after { content: 'Quitar'; margin-left: 6px; font-size: .8rem; font-weight: 700; }
+  .hours-row input[type='time'] { font-size: .95rem; padding: 10px; }
+}
