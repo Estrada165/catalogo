@@ -201,21 +201,23 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
     if (!grouped) return
     const els = [...document.querySelectorAll('[data-cat-section]')]
     if (!els.length) return
-    const io = new IntersectionObserver((entries) => {
-      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-      if (vis[0]) setSpy(vis[0].target.dataset.catSection)
-    }, { rootMargin: '-35% 0px -55% 0px' })
-    els.forEach((el) => io.observe(el))
-    const top = () => {
-      if (scrollY < (document.getElementById('catalogo')?.offsetTop || 400) - 120) setSpy('all')
-      // Al llegar al final, la última categoría queda marcada aunque no alcance la mitad de la pantalla
-      else if (innerHeight + scrollY >= document.documentElement.scrollHeight - 60) {
+    // Marca la última sección cuyo inicio ya pasó el 40% de la pantalla; si ninguna, "Todo"
+    let raf = 0
+    const calc = () => {
+      raf = 0
+      const line = innerHeight * 0.4
+      let cur = 'all'
+      for (const el of els) if (el.getBoundingClientRect().top <= line) cur = el.dataset.catSection
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 60) {
         const last = els[els.length - 1]
-        if (last && last.getBoundingClientRect().top < innerHeight) setSpy(last.dataset.catSection)
+        if (last.getBoundingClientRect().top < innerHeight) cur = last.dataset.catSection
       }
+      setSpy(cur)
     }
-    addEventListener('scroll', top, { passive: true })
-    return () => { io.disconnect(); removeEventListener('scroll', top) }
+    const on = () => { if (!raf) raf = requestAnimationFrame(calc) }
+    addEventListener('scroll', on, { passive: true })
+    calc()
+    return () => { removeEventListener('scroll', on); cancelAnimationFrame(raf) }
   }, [grouped, groups.length])
 
   const cartTarget = () => (cartBarBtn.current?.offsetParent ? cartBarBtn.current : cartBtn.current)
@@ -586,7 +588,9 @@ function Catalog({ cat, slug, embedded = false, forcedMode = null }) {
         <ul className="ticks">{policyItems.map((t, i) => <li key={i}><Check size={16} strokeWidth={2.6} />{t}</li>)}</ul>
       </Sheet>
       <LuChat cat={cat} slug={slug} sym={sym} preview={preview} hidden={cartOpen || !!detail} forceClose={cartOpen}
-        onAdd={(v, el) => add(v, el)} onOpen={openDetail} onOpenCart={() => setCartOpen(true)} />
+        onAdd={(v, el) => add(v, el)} onOpen={openDetail} onOpenCart={() => setCartOpen(true)}
+        onSearch={(text) => { clearFilters(); setCatId('all'); setQ(text); setTimeout(() => goTo('#catalogo-grid'), 280) }}
+        onCategory={(id) => { clearFilters(); setTimeout(() => pickCat(id), 280) }} />
       {toastMsg && <div className="toast" role="status"><Check size={16} /> {toastMsg}</div>}
     </>
   )

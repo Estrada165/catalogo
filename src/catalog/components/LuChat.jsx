@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Send, Plus, ShoppingBag, MessageCircle, Sparkles, RotateCcw, ChevronRight, MapPin } from 'lucide-react'
+import { X, Send, Plus, ShoppingBag, MessageCircle, Sparkles, RotateCcw, ChevronRight, MapPin, LayoutGrid } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getSessionId } from '../../lib/utils'
 import { money, session } from '../lib/format'
@@ -9,7 +9,7 @@ import { answer, buildIndex, suggestions } from '../lib/bot'
 import { priceInfo } from './ProductCard'
 
 // Lu: asistente local. Abre un panel lateral; en escritorio el catálogo se corre para dejarle espacio.
-export default function LuChat({ cat, slug, sym, onAdd, onOpen, onOpenCart, hidden, forceClose, preview }) {
+export default function LuChat({ cat, slug, sym, onAdd, onOpen, onOpenCart, onSearch, onCategory, hidden, forceClose, preview }) {
   const bot = cat.bot
   const name = bot.name || 'Lu'
   const [open, setOpen] = useState(false)
@@ -119,18 +119,19 @@ export default function LuChat({ cat, slug, sym, onAdd, onOpen, onOpenCart, hidd
           )}
           {msgs.map((m, i) => {
             if (m.role === 'user') return <div key={i} className="lu-msg is-me"><p>{m.text}</p></div>
-            const multi = (m.products || []).map((id) => cat.byId[id]).filter((p) => p && p.variants.length === 1 && !p.soldOut)
             return (
               <div key={i} className="lu-msg is-bot">
                 {m.text && <p>{m.text}</p>}
                 {(m.products?.length > 0 || m.actions?.length > 0) && (
                   <div className="lu-att">
                     {(m.products || []).map(productCard)}
-                    {multi.length > 1 && (
-                      <button className="key key--accent key--sm lu-act" onClick={(e) => { const el = e.currentTarget; multi.forEach((p, k) => setTimeout(() => onAdd(p.variants[0], el), k * 180)) }}>
-                        <Plus size={15} /> Agregar los {multi.length} al carrito
-                      </button>
-                    )}
+                    {(m.actions || []).filter((a) => typeof a === 'object').map((a, k) => (
+                      <button key={k} className="key key--sm lu-act" onClick={() => {
+                        setOpen(false)
+                        if (a.type === 'cat') onCategory?.(a.id)
+                        else onSearch?.(a.q)
+                      }}><LayoutGrid size={15} /> {a.label}</button>
+                    ))}
                     {m.actions?.includes('cart') && (
                       <button className="key key--sm lu-act" onClick={() => { setOpen(false); onOpenCart() }}><ShoppingBag size={15} /> Ver mi carrito</button>
                     )}
