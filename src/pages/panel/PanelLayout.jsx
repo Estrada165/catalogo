@@ -12,6 +12,7 @@ import { catalogUrl, daysLeft, formatDate } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import ThemeToggle from '../../components/ThemeToggle'
 import TourHost, { startTour, guideForPath, useAutoTour } from '../../components/tour/TourHost'
+import { InstallButton, UpdateToast, versionLabel } from '../../pwa/AppInstall'
 
 const GROUPS = [
   {
@@ -152,11 +153,13 @@ export default function PanelLayout() {
 
         <div className="side2__foot">
           {tenant && <PlanCard tenant={tenant} contact={contact} />}
+          <InstallButton />
           <div className="side2__tools">
             {guide && <button className="icon-btn" onClick={() => startTour(guide)} aria-label="Ver la guía de esta sección" title="Guía de esta sección"><HelpCircle size={18} /></button>}
             <ThemeToggle />
             <button className="icon-btn icon-btn--danger" onClick={signOut} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={18} /></button>
           </div>
+          <small className="side2__version">{versionLabel()}</small>
         </div>
       </aside>
 
@@ -196,13 +199,16 @@ export default function PanelLayout() {
                 <NavLink key={to} to={to} className="more-sheet__item"><span><Icon size={20} /></span>{label}</NavLink>
               ))}
               <a className="more-sheet__item" href={`/${tenant?.slug}`} target="_blank" rel="noreferrer"><span><ExternalLink size={20} /></span>Ver catálogo</a>
+              <InstallButton variant="item" />
               <button className="more-sheet__item more-sheet__item--danger" onClick={signOut}><span><LogOut size={20} /></span>Cerrar sesión</button>
+              <small className="more-sheet__version">{versionLabel()}</small>
             </div>
           </div>
         </div>
       )}
 
       <TourHost userId={user?.id} />
+      <UpdateToast />
     </div>
   )
 }

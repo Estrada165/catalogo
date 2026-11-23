@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import QrRedirect from './pages/public/QrRedirect'
+import AppStart from './pwa/AppStart'
 
 const entry = (name) => lazy(() => import('./pages/entries').then((m) => ({ default: m[name] })))
 
@@ -34,6 +35,7 @@ export default function App() {
     <Suspense fallback={<Blank />}>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/app" element={<AppStart />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
         <Route path="/recuperar" element={<Recover />} />

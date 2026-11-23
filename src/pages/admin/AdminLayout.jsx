@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Users, Layers, HardDrive, Settings, LogOut, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import ThemeToggle from '../../components/ThemeToggle'
+import { InstallButton, UpdateToast } from '../../pwa/AppInstall'
 
 const ITEMS = [
   { to: '/admin', label: 'Negocios', icon: Users, end: true },
@@ -38,6 +39,7 @@ export default function AdminLayout() {
           </div>
         </nav>
         <div className="side2__foot">
+          <InstallButton />
           <small className="muted side2__who">{profile?.full_name || 'Administrador'}</small>
           <div className="side2__tools">
             <ThemeToggle />
@@ -49,6 +51,7 @@ export default function AdminLayout() {
       <header className="top2">
         <div className="top2__brand"><span className="side2__initial"><ShieldCheck size={18} /></span><strong>Superadmin</strong></div>
         <div className="row">
+          <InstallButton variant="icon" />
           <ThemeToggle />
           <button className="icon-btn icon-btn--danger" onClick={signOut} aria-label="Cerrar sesión"><LogOut size={18} /></button>
         </div>
@@ -57,6 +60,7 @@ export default function AdminLayout() {
       <main className="main2">
         <Outlet />
       </main>
+      <UpdateToast />
 
       <nav className="bottom2" aria-label="Menú">
         {ITEMS.map(({ to, label, icon: Icon, end }) => (

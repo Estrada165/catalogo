@@ -5,8 +5,10 @@ import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import { APP_NAME } from './lib/supabase'
 import { startPrefetch } from './lib/prefetch'
+import { initPwa } from './pwa/pwa'
 
 startPrefetch()
+initPwa()
 
 document.title = APP_NAME
 
