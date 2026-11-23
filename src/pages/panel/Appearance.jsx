@@ -5,8 +5,8 @@ import { useAuth } from '../../context/AuthContext'
 import { FONTS } from '../../catalog/lib/fonts'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
-import { IconArrowDown, IconArrowUp, IconExternal } from '../../components/icons'
-import { Field, ImagePicker, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
+import { IconExternal } from '../../components/icons'
+import { Field, ImagePicker, PosSelect, SaveBar, Section, Tabs, moveTo, useDraft, useSaver } from './ui'
 
 const ACCENTS = ['#FF6B35', '#F5B700', '#2BB673', '#1E88E5', '#7C4DFF', '#E86A92', '#E53935', '#C9A96E', '#00A3A3', '#121316']
 
@@ -102,13 +102,7 @@ export default function Appearance() {
   const setCover = (patch) => theme({ cover: { ...cover, ...patch } })
   const coverMode = cover.mode || 'none'
   const sec = (type, patch) => set({ sections: d.sections.map((s) => (s.type === type ? { ...s, ...patch } : s)) })
-  const move = (i, dir) => {
-    const arr = [...d.sections]
-    const to = i + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[i], arr[to]] = [arr[to], arr[i]]
-    set({ sections: arr })
-  }
+  const move = (i, to) => set({ sections: moveTo(d.sections, i, to) })
   const url = `/${tenant.slug}`
 
   return (
@@ -260,8 +254,7 @@ export default function Appearance() {
                   return (
                     <li key={s.type} className={`section-row ${s.enabled || info.fixed ? '' : 'is-hidden'}`}>
                       <div className="cat-row__order">
-                        <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Subir"><IconArrowUp width={16} height={16} /></button>
-                        <button className="icon-btn" disabled={i === d.sections.length - 1} onClick={() => move(i, 1)} aria-label="Bajar"><IconArrowDown width={16} height={16} /></button>
+                        <PosSelect index={i} total={d.sections.length} onChange={(to) => move(i, to)} label="Orden en el catálogo" />
                       </div>
                       <div className="section-row__info">
                         <strong>{info.name}</strong>

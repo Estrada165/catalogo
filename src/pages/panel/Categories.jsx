@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Switch from '../../components/Switch'
-import { IconArrowDown, IconArrowUp, IconPlus, IconTrash } from '../../components/icons'
+import { IconPlus, IconTrash } from '../../components/icons'
+import { PosSelect, moveTo } from './ui'
 
 export default function Categories({ tenantId, categories, products, onChange }) {
   const [name, setName] = useState('')
@@ -39,11 +40,9 @@ export default function Categories({ tenantId, categories, products, onChange })
     run(() => supabase.from('categories').update({ name: n }).eq('id', c.id))
   }
 
-  const move = (idx, dir) => {
-    const to = idx + dir
-    if (to < 0 || to >= categories.length) return
-    const arr = [...categories]
-    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
+  const move = (idx, to) => {
+    if (to < 0 || to >= categories.length || to === idx) return
+    const arr = moveTo(categories, idx, to)
     run(() => supabase.from('categories').upsert(arr.map((c, i) => ({ ...c, sort: i }))))
   }
 
@@ -68,8 +67,7 @@ export default function Categories({ tenantId, categories, products, onChange })
           {categories.map((c, i) => (
             <li key={c.id} className={`cat-row ${c.visible ? '' : 'is-hidden'}`}>
               <div className="cat-row__order">
-                <button className="icon-btn" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="Subir"><IconArrowUp width={16} height={16} /></button>
-                <button className="icon-btn" disabled={busy || i === categories.length - 1} onClick={() => move(i, 1)} aria-label="Bajar"><IconArrowDown width={16} height={16} /></button>
+                <PosSelect index={i} total={categories.length} disabled={busy} onChange={(to) => move(i, to)} label="Orden" />
               </div>
               <input
                 className="cat-row__name"

@@ -4,8 +4,8 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
-import { IconArrowDown, IconArrowUp, IconClose, IconEdit, IconPlus, IconTrash } from '../../components/icons'
-import { Field, ImagePicker, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
+import { IconClose, IconEdit, IconPlus, IconTrash } from '../../components/icons'
+import { Field, ImagePicker, PosSelect, SaveBar, Section, Tabs, moveTo, useDraft, useSaver } from './ui'
 
 const TABS = [
   { key: 'preguntas', label: 'Preguntas frecuentes' },
@@ -38,11 +38,9 @@ export default function Bot() {
     await load()
   }
 
-  const move = (i, dir) => {
-    const arr = [...faqs]
-    const to = i + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[i], arr[to]] = [arr[to], arr[i]]
+  const move = (i, to) => {
+    if (to < 0 || to >= faqs.length || to === i) return
+    const arr = moveTo(faqs, i, to)
     run(supabase.from('bot_faqs').upsert(arr.map((f, k) => ({ ...f, sort: k }))))
   }
 
@@ -75,8 +73,7 @@ export default function Bot() {
               {faqs.map((f, i) => (
                 <li key={f.id} className={`section-row ${f.active ? '' : 'is-hidden'}`}>
                   <div className="cat-row__order">
-                    <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Subir"><IconArrowUp width={16} height={16} /></button>
-                    <button className="icon-btn" disabled={i === faqs.length - 1} onClick={() => move(i, 1)} aria-label="Bajar"><IconArrowDown width={16} height={16} /></button>
+                    <PosSelect index={i} total={faqs.length} onChange={(to) => move(i, to)} label="Orden" />
                   </div>
                   <div className="section-row__info">
                     <strong>{f.question}</strong>

@@ -6,8 +6,8 @@ import { isValidSlug, catalogUrl } from '../../lib/utils'
 import Switch from '../../components/Switch'
 import { Store, Clock, Truck, Wallet, MessageSquareText, Link2, Info } from 'lucide-react'
 import Loader from '../../components/Loader'
-import { IconPlus, IconTrash, IconArrowUp, IconArrowDown, IconCheck } from '../../components/icons'
-import { Field, ImagePicker, SaveBar, Section, Tabs, useDraft, useSaver } from './ui'
+import { IconPlus, IconTrash, IconCheck } from '../../components/icons'
+import { Field, ImagePicker, PosSelect, SaveBar, Section, Tabs, moveTo, useDraft, useSaver } from './ui'
 
 const TABS = [
   { key: 'negocio', label: 'Negocio', desc: 'Logo, nombre, WhatsApp y redes', icon: Store },
@@ -212,11 +212,9 @@ function DeliveryTab() {
     run(supabase.from('delivery_zones').insert({ tenant_id: tenant.id, name: newZone.name.trim(), cost, sort: zones.length }))
     setNewZone({ name: '', cost: '' })
   }
-  const move = (i, dir) => {
-    const arr = [...zones]
-    const to = i + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[i], arr[to]] = [arr[to], arr[i]]
+  const move = (i, to) => {
+    if (to < 0 || to >= zones.length || to === i) return
+    const arr = moveTo(zones, i, to)
     run(supabase.from('delivery_zones').upsert(arr.map((z, k) => ({ ...z, sort: k }))))
   }
 
@@ -250,8 +248,7 @@ function DeliveryTab() {
               {zones.map((z, i) => (
                 <li key={z.id} className={`cat-row ${z.active ? '' : 'is-hidden'}`}>
                   <div className="cat-row__order">
-                    <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Subir"><IconArrowUp width={16} height={16} /></button>
-                    <button className="icon-btn" disabled={i === zones.length - 1} onClick={() => move(i, 1)} aria-label="Bajar"><IconArrowDown width={16} height={16} /></button>
+                    <PosSelect index={i} total={zones.length} onChange={(to) => move(i, to)} label="Orden" />
                   </div>
                   <input className="cat-row__name" defaultValue={z.name} maxLength={60} onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== z.name && run(supabase.from('delivery_zones').update({ name: e.target.value.trim() }).eq('id', z.id))} />
                   <label className="cost-input">S/
@@ -285,13 +282,7 @@ function PaymentsTab() {
     await saveConfig({ checkout: { ...(config.checkout || {}), payment_methods: d.methods.map((m) => ({ ...m, name: m.name.trim() })) } })
   })
   const upd = (i, patch) => set({ methods: d.methods.map((m, k) => (k === i ? { ...m, ...patch } : m)) })
-  const move = (i, dir) => {
-    const arr = [...d.methods]
-    const to = i + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[i], arr[to]] = [arr[to], arr[i]]
-    set({ methods: arr })
-  }
+  const move = (i, to) => set({ methods: moveTo(d.methods, i, to) })
   const add = (name) => set({ methods: [...d.methods, { name, account_label: /yape|plin/i.test(name) ? 'Número' : /transferencia/i.test(name) ? 'Cuenta' : '', account: '', holder: '', note: '', qr_url: null }] })
   const missing = PAY_PRESETS.filter((p) => !d.methods.some((m) => m.name === p))
 
@@ -329,8 +320,7 @@ function PaymentsTab() {
               <Field label="Nota (opcional)"><input value={m.note || ''} placeholder="Ej.: Envía la captura del pago por WhatsApp" maxLength={140} onChange={(e) => upd(i, { note: e.target.value })} /></Field>
             </div>
             <div className="pay-card__actions">
-              <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Subir"><IconArrowUp width={16} height={16} /></button>
-              <button className="icon-btn" disabled={i === d.methods.length - 1} onClick={() => move(i, 1)} aria-label="Bajar"><IconArrowDown width={16} height={16} /></button>
+              <PosSelect index={i} total={d.methods.length} onChange={(to) => move(i, to)} label="Orden" />
               <button className="icon-btn" onClick={() => set({ methods: d.methods.filter((_, k) => k !== i) })} aria-label="Quitar"><IconTrash width={16} height={16} /></button>
             </div>
           </div>

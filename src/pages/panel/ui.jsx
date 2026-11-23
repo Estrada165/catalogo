@@ -142,3 +142,26 @@ export function Tabs({ tabs, value, onChange }) {
     </div>
   )
 }
+
+
+// Mueve un elemento de una posición a otra (las demás se corren)
+export function moveTo(arr, from, to) {
+  const out = [...arr]
+  if (to < 0 || to >= out.length || from === to) return out
+  const [item] = out.splice(from, 1)
+  out.splice(to, 0, item)
+  return out
+}
+
+// Selector de posición numerado: muestra "1, 2, 3…" y al elegir otro número lo mueve ahí
+export function PosSelect({ index, total, onChange, disabled, label = 'Posición', className = '' }) {
+  if (total < 2) return <span className={`pos-select is-single ${className}`}><b>{index + 1}</b></span>
+  return (
+    <label className={`pos-select ${className}`} title={`${label}: ${index + 1} de ${total}`}>
+      <span className="sr-only">{label}</span>
+      <select value={index} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} onClick={(e) => e.stopPropagation()}>
+        {Array.from({ length: total }, (_, k) => <option key={k} value={k}>{k + 1}</option>)}
+      </select>
+    </label>
+  )
+}

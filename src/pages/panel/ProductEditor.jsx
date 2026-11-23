@@ -5,7 +5,8 @@ import Switch from '../../components/Switch'
 import Loader from '../../components/Loader'
 import Cropper from '../../components/Cropper'
 import { Crop, ListChecks, AlertTriangle, ListOrdered, StickyNote } from 'lucide-react'
-import { IconClose, IconImage, IconPlus, IconTrash, IconArrowUp, IconArrowDown } from '../../components/icons'
+import { IconClose, IconImage, IconPlus, IconTrash } from '../../components/icons'
+import { PosSelect, moveTo } from './ui'
 
 const UNITS = [
   { value: 'und', label: 'Unidad' },
@@ -151,13 +152,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
     set({ images: form.images.filter((_, i) => i !== idx) })
   }
 
-  const moveImage = (idx, dir) => {
-    const arr = [...form.images]
-    const to = idx + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
-    set({ images: arr })
-  }
+  const moveImage = (idx, to) => set({ images: moveTo(form.images, idx, to) })
 
   const setVariant = (key, patch) => set({ variants: form.variants.map((v) => (v.key === key ? { ...v, ...patch } : v)) })
   const addVariant = () => set({ variants: [...form.variants, emptyVariant()] })
@@ -165,13 +160,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
 
   const setDetail = (key, patch) => set({ details: form.details.map((d) => (d.key === key ? { ...d, ...patch } : d)) })
   const addDetail = (kind) => set({ details: [...form.details, { key: newKey(), kind, title: kindInfo(kind).title, text: '' }] })
-  const moveDetail = (idx, dir) => {
-    const arr = [...form.details]
-    const to = idx + dir
-    if (to < 0 || to >= arr.length) return
-    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
-    set({ details: arr })
-  }
+  const moveDetail = (idx, to) => set({ details: moveTo(form.details, idx, to) })
 
   const addTag = () => {
     const parts = tagInput.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
@@ -316,10 +305,9 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                 <div key={img.path_full || img.full} className="image-tile">
                   <img src={img.thumb || img.full} alt="" />
                   {i === 0 && <span className="image-tile__cover">Portada</span>}
+                  <PosSelect className="image-tile__pos" index={i} total={form.images.length} onChange={(to) => moveImage(i, to)} label="Orden de la foto" />
                   <div className="image-tile__actions">
                     <button type="button" onClick={() => setAdjusting(i)} aria-label="Ajustar foto" title="Ajustar"><Crop size={15} /></button>
-                    <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} aria-label="Mover antes"><IconArrowUp width={15} height={15} /></button>
-                    <button type="button" onClick={() => moveImage(i, 1)} disabled={i === form.images.length - 1} aria-label="Mover después"><IconArrowDown width={15} height={15} /></button>
                     <button type="button" onClick={() => removeImage(i)} aria-label="Quitar foto"><IconTrash width={15} height={15} /></button>
                   </div>
                 </div>
@@ -472,8 +460,7 @@ export default function ProductEditor({ tenantId, product, categories, modules, 
                   <div className="dblock__head">
                     <span className="dblock__icon"><info.Icon size={16} /></span>
                     <input className="dblock__title" value={d.title} maxLength={40} placeholder={info.title} onChange={(e) => setDetail(d.key, { title: e.target.value })} aria-label="Título del bloque" />
-                    <button type="button" className="icon-btn" onClick={() => moveDetail(i, -1)} disabled={i === 0} aria-label="Subir"><IconArrowUp width={15} height={15} /></button>
-                    <button type="button" className="icon-btn" onClick={() => moveDetail(i, 1)} disabled={i === form.details.length - 1} aria-label="Bajar"><IconArrowDown width={15} height={15} /></button>
+                    <PosSelect index={i} total={form.details.length} onChange={(to) => moveDetail(i, to)} label="Orden del bloque" />
                     <button type="button" className="icon-btn" onClick={() => set({ details: form.details.filter((x) => x.key !== d.key) })} aria-label="Quitar bloque"><IconTrash width={15} height={15} /></button>
                   </div>
                   <textarea rows={d.kind === 'nota' ? 2 : 3} maxLength={1500} value={d.text} placeholder={info.ph} onChange={(e) => setDetail(d.key, { text: e.target.value })} />
