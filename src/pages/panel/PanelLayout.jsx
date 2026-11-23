@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   Home, Package, ShoppingBag, Palette, Bot, QrCode, BarChart3, Settings, LogOut, ExternalLink, HelpCircle,
-  MoreHorizontal, X, CalendarClock,
+  MoreHorizontal, X, CalendarClock, ReceiptText,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { cleanupReplaced } from '../../lib/images'
@@ -20,6 +20,7 @@ const GROUPS = [
       { to: '/panel', label: 'Inicio', icon: Home, end: true },
       { to: '/panel/productos', label: 'Productos', icon: Package, tour: 'nav-productos' },
       { to: '/panel/pedidos', label: 'Pedidos', icon: ShoppingBag, module: 'pedidos' },
+      { to: '/panel/boletas', label: 'Boletas', icon: ReceiptText },
     ],
   },
   {

@@ -535,3 +535,108 @@ h2.display { font-size: 1.3rem; }
 .image-tile__cover { display: inline-flex; align-items: center; gap: 4px; }
 .image-tile__pos { top: 6px; right: 6px; width: 38px; height: 28px; }
 @media (max-width: 560px) { .image-tile__cover > span { display: none; } .image-tile__cover { padding: 5px 6px !important; } }
+
+/* ════════ Boletas ════════ */
+.drawer__panel--receipt { width: min(1240px, 100%); }
+.drawer__panel--viewer { width: min(900px, 100%); }
+.rc-tabs { display: none; padding: 0 20px 10px; }
+.rc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 460px); gap: 18px; align-items: start; }
+.rc-form { display: grid; gap: 14px; min-width: 0; }
+.rc-side { position: sticky; top: 0; display: grid; gap: 10px; min-width: 0; }
+.rc-side__bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.segmented--sm button { padding: 6px 12px; font-size: .82rem; }
+.form-block__title svg { color: var(--text-2); }
+.form-block__title small { font-weight: 500; font-size: .78rem; }
+.field--span { grid-column: 1 / -1; }
+
+.rc-paper { border-radius: 18px; padding: 18px; background: repeating-linear-gradient(45deg, var(--surface-2), var(--surface-2) 10px, color-mix(in oklab, var(--surface-2) 70%, var(--bg)) 10px, color-mix(in oklab, var(--surface-2) 70%, var(--bg)) 20px); border: 1px solid var(--line); }
+.rc-paper--ticket { display: grid; justify-items: center; }
+.rc-paper--ticket .rc-preview { width: min(100%, 332px); }
+.rc-preview { position: relative; width: 100%; overflow: hidden; }
+.rc-preview__inner { transform-origin: top left; }
+.rc-preview .rcpt { box-shadow: 0 30px 60px -30px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.08); border-radius: 4px; }
+.rc-paper--settings { max-width: 560px; }
+
+.rc-doc { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
+.rc-items { display: grid; gap: 8px; }
+.rc-items__head, .rc-item { display: grid; grid-template-columns: minmax(0, 1fr) 64px 92px 92px 84px 96px 36px; gap: 8px; align-items: center; }
+.rc-items__head span { font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
+.rc-items__head span:nth-child(n+4) { text-align: right; }
+.rc-item input { min-width: 0; height: 42px; padding: 0 10px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); font: inherit; color: inherit; outline: none; }
+.rc-item input:focus { border-color: var(--accent); background: var(--surface); }
+.rc-item__qty, .rc-item__price, .rc-item__disc { text-align: right; font-variant-numeric: tabular-nums; }
+.rc-item .dd { height: 42px; padding: 0 8px 0 10px; font-size: .88rem; }
+.rc-item__amount { text-align: right; font-size: .95rem; }
+.rc-item__del { width: 36px; height: 36px; }
+.rc-add { justify-self: start; }
+.rc-discount { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.rc-discount input { width: 130px; height: 42px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); font: inherit; outline: none; text-align: right; }
+.rc-discount input:focus { border-color: var(--accent); background: var(--surface); }
+.rc-sum { display: grid; gap: 6px; margin: 6px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.rc-sum div { display: flex; justify-content: space-between; gap: 12px; }
+.rc-sum dt { color: var(--text-2); }
+.rc-sum dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-sum .is-total { padding-top: 8px; margin-top: 2px; border-top: 1px dashed var(--line); font-size: 1.1rem; }
+.rc-sum .is-total dt { color: var(--text); font-weight: 800; }
+.rc-foot-total { margin-right: auto; font-family: var(--font-display); font-size: 1.15rem; }
+
+@media (max-width: 1100px) {
+  .rc-body { grid-template-columns: minmax(0, 1fr); }
+  .rc-tabs { display: block; }
+  .rc-body.is-datos .rc-side { display: none; }
+  .rc-body.is-vista .rc-form { display: none; }
+  .rc-side { position: static; }
+}
+@media (max-width: 760px) {
+  .rc-items__head { display: none; }
+  .rc-item { grid-template-columns: repeat(3, minmax(0, 1fr)) 36px; grid-template-areas: 'desc desc desc del' 'qty unit price .' 'disc amount amount .'; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); row-gap: 8px; }
+  .rc-item__desc { grid-area: desc; }
+  .rc-item__qty { grid-area: qty; }
+  .rc-item__unit { grid-area: unit; }
+  .rc-item__price { grid-area: price; }
+  .rc-item__disc { grid-area: disc; }
+  .rc-item__amount { grid-area: amount; align-self: center; }
+  .rc-item__del { grid-area: del; }
+  .rc-item__qty::placeholder { color: var(--text-2); }
+  .rc-doc { grid-template-columns: 1fr; }
+  .rc-foot-total { flex-basis: 100%; }
+}
+
+.rc-view { display: grid; gap: 12px; }
+.rc-actions { display: grid; gap: 10px; }
+.rc-actions__main { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.rc-actions__main .btn { justify-content: center; }
+.rc-actions__more { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.rc-msg { text-align: center; font-size: .85rem; }
+@media (max-width: 640px) { .rc-actions__main { grid-template-columns: 1fr 1fr; } }
+
+.rc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rc-row { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); text-align: left; font: inherit; color: inherit; cursor: pointer; box-shadow: 0 1px 0 var(--line); transition: transform .18s var(--ease), border-color .18s; }
+.rc-row:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); }
+.rc-row.is-void { opacity: .6; }
+.rc-row.is-void .rc-row__total { text-decoration: line-through; }
+.rc-row__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); border: 1px solid var(--line); }
+.rc-row__main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rc-row__main small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-row__total { font-family: var(--font-display); font-size: 1.05rem; white-space: nowrap; }
+.rc-empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 40px 20px; }
+.rc-empty svg { color: var(--text-2); }
+.stats--receipts { grid-template-columns: repeat(2, minmax(0, 220px)); margin-bottom: 16px; }
+
+.rc-picker { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; padding: 16px; }
+.rc-picker__backdrop { position: absolute; inset: 0; background: rgba(10,10,12,.4); backdrop-filter: blur(3px); }
+.rc-picker__panel { position: relative; width: min(520px, 100%); max-height: min(70dvh, 560px); display: flex; flex-direction: column; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 30px 70px -20px rgba(0,0,0,.45); overflow: hidden; animation: dd-in .18s var(--ease) both; }
+.rc-picker__head { display: flex; gap: 8px; align-items: center; padding: 14px; border-bottom: 1px solid var(--line); }
+.rc-picker__head .search { flex: 1; }
+.rc-picker__list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; }
+.rc-picker__list button { width: 100%; display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 12px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.rc-picker__list button:hover { background: var(--surface-2); }
+.rc-picker__empty { padding: 20px; text-align: center; }
+
+.order-receipt { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; background: color-mix(in oklab, var(--accent) 8%, var(--surface-2)); border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--line)); }
+.order-receipt span { flex: 1; min-width: 150px; font-size: .9rem; }
+.rc-side, .rc-view { grid-template-columns: minmax(0, 1fr); }
+.rc-paper, .rc-form, .rc-side > *, .rc-view > * { min-width: 0; }
+/* Ventanas laterales: el cuerpo es lo único que se desplaza (el encabezado y el pie nunca se mueven) */
+.drawer__panel { overflow: clip; }
+.drawer__body { min-height: 0; }

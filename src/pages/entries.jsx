@@ -19,6 +19,7 @@ export { default as Orders } from './panel/Orders'
 export { default as Bot } from './panel/Bot'
 export { default as QrPage } from './panel/QrPage'
 export { default as Analytics } from './panel/Analytics'
+export { default as Receipts } from './panel/Receipts'
 
 export const LoginPage = () => <GuestOnly><Login /></GuestOnly>
 export const RegisterPage = () => <GuestOnly><Register /></GuestOnly>

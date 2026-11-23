@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import { ReceiptText } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { formatPrice } from '../../lib/utils'
@@ -166,6 +167,12 @@ function OrderDrawer({ order: o, methods, businessName, onClose, onUpdate, onDel
   const idx = FLOW.indexOf(o.status)
   const phone = String(c.phone || '').replace(/\D/g, '')
   const wa = phone ? waUrl(phone, `👋 Hola ${c.name || ''}, te escribimos de *${businessName}* por tu pedido *${o.code}* 🧾`) : null
+  const navigate = useNavigate()
+  const [receipt, setReceipt] = useState(undefined)
+  useEffect(() => {
+    supabase.from('receipts').select('id, code, status').eq('order_id', o.id).order('created_at', { ascending: false }).limit(1)
+      .then(({ data, error }) => setReceipt(error ? null : data?.[0] || null))
+  }, [o.id])
 
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && onClose()
@@ -194,6 +201,15 @@ function OrderDrawer({ order: o, methods, businessName, onClose, onUpdate, onDel
                 </button>
               ))}
             </div>
+            {o.status === 'entregado' && receipt !== undefined && (
+              <div className="order-receipt">
+                <ReceiptText size={18} />
+                <span>{receipt ? <>Boleta <b>{receipt.code}</b>{receipt.status === 'anulada' ? ' (anulada)' : ''}</> : 'Pedido completado. ¿Le haces su boleta?'}</span>
+                {receipt
+                  ? <button className="btn btn--sm" onClick={() => navigate('/panel/boletas', { state: { openId: receipt.id } })}>Ver boleta</button>
+                  : <button className="btn btn--sm btn--primary" onClick={() => navigate('/panel/boletas', { state: { fromOrder: o } })}>Crear boleta</button>}
+              </div>
+            )}
             <div className="row">
               {o.status !== 'no_concretado' && <button className="btn btn--sm btn--ghost" onClick={() => onUpdate(o, { status: 'no_concretado' })}>Marcar no concretado</button>}
               {o.status !== 'cancelado' && <button className="btn btn--sm btn--ghost" onClick={() => onUpdate(o, { status: 'cancelado' })}>Cancelar pedido</button>}

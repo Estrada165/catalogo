@@ -21,6 +21,7 @@ const Orders = entry('Orders')
 const Bot = entry('Bot')
 const QrPage = entry('QrPage')
 const Analytics = entry('Analytics')
+const Receipts = entry('Receipts')
 const CatalogPage = lazy(() => import('./catalog/CatalogPage'))
 const Recover = lazy(() => import('./pages/auth/Recover'))
 
@@ -42,6 +43,7 @@ export default function App() {
           <Route index element={<PanelHome />} />
           <Route path="productos" element={<Products />} />
           <Route path="pedidos" element={<Orders />} />
+          <Route path="boletas" element={<Receipts />} />
           <Route path="apariencia" element={<Appearance />} />
           <Route path="bot" element={<Bot />} />
           <Route path="qr" element={<QrPage />} />

@@ -20,6 +20,12 @@ export const GUIDES = {
     { target: '[data-tour="filtros-pedidos"]', title: 'Filtra por estado', text: 'Pendiente, confirmado, enviado, entregado. Los pendientes sin movimiento por 48 horas pasan solos a "No concretado".' },
     { target: '[data-tour="lista-pedidos"]', title: 'Abre un pedido', text: 'Al abrirlo ves los productos, los datos del cliente, cambias el estado y registras el pago.' },
   ],
+  boletas: [
+    { title: 'Tus boletas', text: 'Haz notas de venta para tus clientes y sácalas en PDF, como imagen para WhatsApp o impresas (hoja A4 o ticket).' },
+    { target: '[data-tour="nueva-boleta"]', title: 'Desde cero', text: 'Crea una boleta con lo que quieras: productos de tu catálogo o cosas que no subiste. Puedes poner descuentos y mostrar el IGV.' },
+    { title: 'Desde un pedido', text: 'En Pedidos, cuando marcas uno como Entregado, aparece "Crear boleta" y se llena sola con los productos, el delivery y el cliente.' },
+    { title: 'Tus datos en la boleta', text: 'En Configuración → Boletas pones tu RUC, dirección, el mensaje del pie y la serie. Tu logo sale solo.' },
+  ],
   apariencia: [
     { title: 'Tu catálogo a tu gusto', text: 'Cambia colores, letras y secciones. A la derecha ves cómo queda al instante.' },
     { target: '[data-tour="color"]', title: 'Color principal', text: 'Se usa en botones y precios. Si un color no se leería bien, lo ajustamos solos.' },

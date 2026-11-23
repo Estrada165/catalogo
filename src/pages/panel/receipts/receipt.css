@@ -1,0 +1,108 @@
+/* ════════ Documento de la boleta (siempre claro, como papel) ════════ */
+.rcpt {
+  --rc-ink: #17171a; --rc-muted: #6b6b73; --rc-line: #e4e3df; --rc-soft: #f6f5f2;
+  position: relative; overflow: hidden; box-sizing: border-box;
+  background: #fff; color: var(--rc-ink); font-family: 'Manrope Variable', Manrope, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; line-height: 1.4; text-align: left;
+}
+.rcpt * { box-sizing: border-box; }
+.rcpt--a4 { width: 794px; min-height: 1123px; padding: 56px 60px 48px; font-size: 13px; display: flex; flex-direction: column; }
+
+/* Cabecera */
+.rcpt__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 28px; padding-bottom: 24px; border-bottom: 2px solid var(--rc-ink); }
+.rcpt__brand { display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1; }
+.rcpt__logo { width: auto; height: 76px; max-width: 180px; object-fit: contain; border-radius: 12px; flex-shrink: 0; }
+.rcpt__issuer { display: grid; gap: 2px; min-width: 0; }
+.rcpt__issuer strong { font-family: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin-bottom: 4px; overflow-wrap: anywhere; }
+.rcpt__issuer strong.is-big { font-size: 30px; }
+.rcpt__issuer span { color: var(--rc-muted); font-size: 12px; overflow-wrap: anywhere; }
+.rcpt__box { flex-shrink: 0; min-width: 210px; display: grid; gap: 4px; justify-items: center; text-align: center; padding: 14px 18px; border: 1.5px solid var(--rc-ink); border-radius: 14px; }
+.rcpt__type { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--rc-accent); }
+.rcpt__num { font-size: 21px; font-weight: 800; letter-spacing: .02em; }
+.rcpt__date { font-size: 12px; color: var(--rc-muted); }
+
+/* Cliente */
+.rcpt__cust { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; margin-top: 22px; padding: 16px 18px; border-radius: 12px; background: var(--rc-soft); }
+.rcpt__cust div { display: grid; gap: 1px; min-width: 0; }
+.rcpt__cust span { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--rc-muted); }
+.rcpt__cust b { font-weight: 700; overflow-wrap: anywhere; }
+
+/* Detalle */
+.rcpt__table { width: 100%; border-collapse: collapse; margin-top: 22px; }
+.rcpt__table th { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--rc-muted); text-align: left; padding: 0 8px 10px; border-bottom: 1.5px solid var(--rc-ink); }
+.rcpt__table td { padding: 11px 8px; border-bottom: 1px solid var(--rc-line); vertical-align: top; }
+.rcpt__table .is-num { text-align: right; white-space: nowrap; }
+.rcpt__table .is-qty { width: 64px; white-space: nowrap; }
+.rcpt__table .is-desc { font-weight: 600; overflow-wrap: anywhere; }
+.rcpt__table th:first-child, .rcpt__table td:first-child { padding-left: 0; }
+.rcpt__table th:last-child, .rcpt__table td:last-child { padding-right: 0; }
+.rcpt__empty { text-align: center; color: var(--rc-muted); padding: 26px 0 !important; font-style: italic; }
+
+/* Totales */
+.rcpt__sum { display: flex; justify-content: space-between; align-items: flex-start; gap: 28px; margin-top: 20px; }
+.rcpt__words { flex: 1; display: grid; gap: 6px; padding-top: 4px; min-width: 0; }
+.rcpt__words p { font-size: 12px; overflow-wrap: anywhere; }
+.rcpt__words p:first-child { font-weight: 800; font-size: 11.5px; letter-spacing: .02em; }
+.rcpt__words span { color: var(--rc-muted); }
+.rcpt__totals { width: 270px; flex-shrink: 0; display: grid; gap: 6px; margin: 0; }
+.rcpt__totals div { display: flex; justify-content: space-between; gap: 12px; }
+.rcpt__totals dt { color: var(--rc-muted); }
+.rcpt__totals dd { margin: 0; font-weight: 700; }
+.rcpt__total { margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: var(--rc-ink); color: #fff; align-items: baseline; }
+.rcpt__total dt { color: rgba(255,255,255,.75) !important; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; }
+.rcpt__total dd { font-size: 20px; font-weight: 800; }
+
+/* Pie */
+.rcpt__foot { margin-top: auto; padding-top: 32px; text-align: center; display: grid; gap: 6px; }
+.rcpt__thanks { font-weight: 700; font-size: 13.5px; }
+.rcpt__legal { font-size: 10px; color: var(--rc-muted); padding-top: 10px; border-top: 1px dashed var(--rc-line); }
+
+/* Anulada */
+.rcpt__void { position: absolute; inset: 0; display: grid; place-items: center; font-size: 120px; font-weight: 900; letter-spacing: .1em; color: rgba(220, 38, 38, .12); transform: rotate(-24deg); pointer-events: none; z-index: 2; }
+
+/* ── Ticket 80 mm ── */
+.rcpt--ticket { width: 302px; padding: 18px 16px 20px; font-size: 11.5px; font-family: 'Manrope Variable', Manrope, system-ui, sans-serif; }
+.rcpt--ticket .rcpt__head { flex-direction: column; align-items: center; text-align: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--rc-ink); }
+.rcpt--ticket .rcpt__brand { flex-direction: column; gap: 8px; }
+.rcpt--ticket .rcpt__logo { height: 56px; max-width: 150px; }
+.rcpt--ticket .rcpt__issuer { justify-items: center; }
+.rcpt--ticket .rcpt__issuer strong { font-size: 16px; }
+.rcpt--ticket .rcpt__issuer strong.is-big { font-size: 20px; }
+.rcpt--ticket .rcpt__issuer span { font-size: 10.5px; }
+.rcpt--ticket .rcpt__box { min-width: 0; width: 100%; padding: 8px; border-radius: 8px; border-width: 1px; }
+.rcpt--ticket .rcpt__num { font-size: 15px; }
+.rcpt--ticket .rcpt__cust { grid-template-columns: 1fr; gap: 4px; margin-top: 10px; padding: 8px 0; background: none; border-bottom: 1px dashed var(--rc-line); border-radius: 0; }
+.rcpt--ticket .rcpt__cust div { grid-template-columns: 70px 1fr; gap: 6px; }
+.rcpt--ticket .rcpt__cust span { font-size: 9.5px; letter-spacing: .04em; padding-top: 1px; }
+.rcpt--ticket .rcpt__table { margin-top: 8px; }
+.rcpt--ticket .rcpt__table th { font-size: 9px; padding: 0 3px 6px; border-bottom-width: 1px; }
+.rcpt--ticket .rcpt__table td { padding: 6px 3px; font-size: 11px; }
+.rcpt--ticket .rcpt__table .is-qty { width: 34px; }
+.rcpt--ticket .rcpt__sum { flex-direction: column-reverse; gap: 10px; margin-top: 10px; }
+.rcpt--ticket .rcpt__totals { width: 100%; gap: 4px; }
+.rcpt--ticket .rcpt__total { padding: 8px 10px; border-radius: 8px; }
+.rcpt--ticket .rcpt__total dd { font-size: 16px; }
+.rcpt--ticket .rcpt__words p { font-size: 10.5px; }
+.rcpt--ticket .rcpt__foot { padding-top: 14px; }
+.rcpt--ticket .rcpt__thanks { font-size: 11.5px; }
+.rcpt--ticket .rcpt__legal { font-size: 9px; }
+.rcpt--ticket .rcpt__void { font-size: 54px; }
+
+/* ── Imprimir: solo el documento ── */
+#print-root { display: none; }
+@media print {
+  @page { margin: 0; }
+  body.is-printing > *:not(#print-root) { display: none !important; }
+  body.is-printing #print-root { display: block !important; }
+  body.is-printing { background: #fff !important; }
+  #print-root .rcpt--a4 { width: 210mm; min-height: 297mm; padding: 15mm 16mm; }
+  #print-root .rcpt--ticket { width: 80mm; padding: 4mm; }
+  .rcpt__total { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rcpt__cust { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+/* Sin logo ni nombre: el recuadro de la nota de venta va al centro */
+.rcpt__head.is-bare { justify-content: center; }
+.rcpt__head.is-bare .rcpt__box { min-width: 320px; padding: 18px 28px; }
+.rcpt__head.is-bare .rcpt__type { font-size: 13px; }
+.rcpt__head.is-bare .rcpt__num { font-size: 26px; }
+.rcpt--ticket .rcpt__head.is-bare .rcpt__box { min-width: 0; }

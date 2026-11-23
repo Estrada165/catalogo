@@ -4,7 +4,10 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { isValidSlug, catalogUrl } from '../../lib/utils'
 import Switch from '../../components/Switch'
-import { Store, Clock, Truck, Wallet, MessageSquareText, Link2, Info } from 'lucide-react'
+import { Store, Clock, Truck, Wallet, MessageSquareText, Link2, Info, ReceiptText } from 'lucide-react'
+import ReceiptDoc from './receipts/ReceiptDoc'
+import ScaledPreview from './receipts/ScaledPreview'
+import { issuerFrom } from './receipts/exporter'
 import Loader from '../../components/Loader'
 import { IconPlus, IconTrash, IconCheck } from '../../components/icons'
 import { Field, ImagePicker, PosSelect, SaveBar, Section, Tabs, moveTo, useDraft, useSaver } from './ui'
@@ -15,6 +18,7 @@ const TABS = [
   { key: 'entrega', label: 'Entrega', desc: 'Delivery, recojo o solo vitrina', icon: Truck },
   { key: 'pagos', label: 'Pagos', desc: 'Yape, Plin, bancos y QR', icon: Wallet },
   { key: 'pedido', label: 'Pedido', desc: 'Qué datos pides y el mensaje', icon: MessageSquareText },
+  { key: 'boletas', label: 'Boletas', desc: 'Tus datos en la boleta', icon: ReceiptText },
   { key: 'enlace', label: 'Enlace', desc: 'La dirección de tu catálogo', icon: Link2 },
 ]
 
@@ -49,6 +53,8 @@ export default function Settings() {
         <PaymentsTab />
       ) : tab === 'pedido' ? (
         <CheckoutTab />
+      ) : tab === 'boletas' ? (
+        <ReceiptTab />
       ) : (
         <LinkTab />
       )}
@@ -381,6 +387,74 @@ function CheckoutTab() {
 }
 
 /* ─────────── Enlace ─────────── */
+const SAMPLE = {
+  customer: { name: 'Ana Torres', doc_type: 'DNI', doc_number: '45678912', phone: '987654321' },
+  items: [
+    { description: 'Producto de ejemplo', qty: 2, unit: 'und', unit_price: 35, discount: 0 },
+    { description: 'Delivery', qty: 1, unit: 'und', unit_price: 10, discount: 0 },
+  ],
+  discount_type: 'amount', discount_value: 0, payment_method: 'Yape', issued_at: new Date().toISOString(),
+}
+
+function ReceiptTab() {
+  const { config, saveConfig } = useOutletContext()
+  const { tenant } = useAuth()
+  const b = config.business || {}
+  const source = useMemo(() => ({
+    name: b.name || tenant.name, ruc: '', address: b.address || '', phone: String(b.whatsapp || '').replace(/^51(?=9\d{8}$)/, ''), email: '',
+    footer: '¡Gracias por tu compra!', series: 'NV01', igv_default: false, format: 'a4', show_logo: true, ...(b.receipt || {}),
+  }), [b, tenant.name])
+  const [d, set, dirty, reset] = useDraft(source)
+  const saver = useSaver(async () => {
+    if (d.ruc && !/^(10|15|17|20)\d{9}$/.test(d.ruc)) throw new Error('El RUC debe tener 11 dígitos (empieza con 10 o 20).')
+    const series = String(d.series || 'NV01').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'NV01'
+    await saveConfig({ business: { ...b, receipt: { ...d, series } } })
+  })
+  const issuer = issuerFrom({ ...config, business: { ...b, receipt: d } }, tenant)
+
+  return (
+    <>
+      <Section title="Datos en la boleta" hint="Así aparece tu negocio arriba de cada boleta. Si no tienes logo, se muestra tu nombre en grande.">
+        <div className="form-grid">
+          <Field label="Nombre o razón social"><input value={d.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} /></Field>
+          <Field label="RUC (opcional)"><input inputMode="numeric" maxLength={11} value={d.ruc} onChange={(e) => set({ ruc: e.target.value.replace(/\D/g, '') })} /></Field>
+          <Field label="Dirección"><input value={d.address} maxLength={140} onChange={(e) => set({ address: e.target.value })} /></Field>
+          <Field label="Teléfono"><input inputMode="tel" maxLength={15} value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
+          <Field label="Correo (opcional)"><input type="email" maxLength={80} value={d.email} onChange={(e) => set({ email: e.target.value.trim() })} /></Field>
+          <Field label="Mensaje al pie"><input value={d.footer} maxLength={120} placeholder="¡Gracias por tu compra!" onChange={(e) => set({ footer: e.target.value })} /></Field>
+        </div>
+        <Switch checked={d.show_logo !== false} onChange={(v) => set({ show_logo: v })} label={b.logo ? 'Mostrar mi logo' : 'Mostrar mi logo (aún no subes uno en Negocio)'} disabled={!b.logo} />
+      </Section>
+
+      <Section title="Numeración y formato">
+        <div className="form-grid">
+          <Field label="Serie" hint="4 letras o números. Las boletas salen como NV01-000001, NV01-000002…">
+            <input value={d.series} maxLength={4} onChange={(e) => set({ series: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
+          </Field>
+          <div className="field">
+            <span>Formato por defecto</span>
+            <div className="segmented">
+              <button className={d.format !== 'ticket' ? 'is-active' : ''} onClick={() => set({ format: 'a4' })}>Hoja A4</button>
+              <button className={d.format === 'ticket' ? 'is-active' : ''} onClick={() => set({ format: 'ticket' })}>Ticket 80 mm</button>
+            </div>
+          </div>
+        </div>
+        <Switch checked={!!d.igv_default} onChange={(v) => set({ igv_default: v })} label="Mostrar IGV (18%) en las boletas nuevas" />
+        <small className="muted">Igual puedes prenderlo o apagarlo en cada boleta.</small>
+      </Section>
+
+      <Section title="Así se verá">
+        <div className={`rc-paper rc-paper--${d.format === 'ticket' ? 'ticket' : 'a4'} rc-paper--settings`}>
+          <ScaledPreview docWidth={d.format === 'ticket' ? 302 : 794} max={1}>
+            <ReceiptDoc receipt={{ ...SAMPLE, igv: !!d.igv_default }} issuer={issuer} format={d.format === 'ticket' ? 'ticket' : 'a4'} code={`${(d.series || 'NV01').toUpperCase()}-000001`} />
+          </ScaledPreview>
+        </div>
+      </Section>
+      <SaveBar dirty={dirty} saving={saver.saving} onSave={saver.run} onReset={reset} error={saver.error} saved={saver.saved} />
+    </>
+  )
+}
+
 function LinkTab() {
   const { tenant, refresh } = useAuth()
   const [slug, setSlug] = useState(tenant.slug)
