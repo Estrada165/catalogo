@@ -155,6 +155,17 @@ export default function Appearance() {
                     </button>
                   ))}
                 </div>
+                {coverMode !== 'none' && (
+                  <div className="field">
+                    <span>Alcance</span>
+                    <div className="segmented">
+                      {[['hero', 'Solo la portada'], ['page', 'Toda la página']].map(([k, l]) => (
+                        <button key={k} className={(cover.span || 'hero') === k ? 'is-active' : ''} onClick={() => setCover({ span: k })}>{l}</button>
+                      ))}
+                    </div>
+                    <small className="muted">{(cover.span || 'hero') === 'page' ? 'Queda fija de fondo mientras el cliente baja por los productos.' : 'Se ve arriba, detrás de tu logo y nombre.'}</small>
+                  </div>
+                )}
                 {coverMode === 'image' && (
                   <>
                     <ImagePicker wide tenantId={tenant.id} folder="brand" value={cover.image} size={1800} label="Subir imagen de portada"

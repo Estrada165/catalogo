@@ -53,6 +53,7 @@ export function normalizeCatalog({ tenant, config, categories, products, zones, 
         color1: c.color1 || theme.accent || '#18181B',
         color2: c.color2 || '#8B7DFF',
         shape: c.shape === 'diagonal' ? 'diagonal' : 'aurora',
+        span: c.span === 'page' ? 'page' : 'hero', // solo la portada o fondo de toda la página
       }
     })(),
     card_style: theme.card_style || style.card_style,
